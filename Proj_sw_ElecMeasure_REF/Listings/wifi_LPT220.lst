@@ -1,0 +1,342 @@
+C51 COMPILER V9.54   WIFI_LPT220                                                           08/24/2018 15:55:00 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE WIFI_LPT220
+OBJECT MODULE PLACED IN .\Output\wifi_LPT220.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE hwDriver\wifi_LPT220.c OMF2 ROM(COMPACT) OPTIMIZE(8,SPEED) BROWSE INCDIR
+                    -(..\Proj_sw_ElecMeasure;.\Usr;.\Usr_lib;.\std_Lib;.\hwDriver;.\dataTrans) DEBUG PRINT(.\Listings\wifi_LPT220.lst) OBJECT
+                    -(.\Output\wifi_LPT220.obj)
+
+line level    source
+
+   1          #include "wifi_LPT220.h"
+   2          
+   3          #include "dataTrans.h"
+   4          #include "pars_Method.h"
+   5          #include "dataManage.h"
+   6          #include "eeprom.h"
+   7          #include "Tips.h"
+   8          #include "HW8012.h"
+   9          
+  10          #include "USART.h"
+  11          #include "delay.h"
+  12          #include "soft_uart.h"
+  13          
+  14          #include "string.h"
+  15          #include "stdio.h"
+  16          #include "ctype.h"
+  17          #include "stdlib.h"
+  18          
+  19          //*******************´®¿Ú±äÁ¿ÒýÓÃÇø***************************/
+  20          extern COMx_Define              COM1;
+  21          
+  22          //*******************Êý¾Ý´«Êä±äÁ¿ÒýÓÃÇø***********************/
+  23          extern bit                              deviceLock_flag;                //Éè±¸Ëø±êÖ¾
+  24          
+  25          /********************±¾µØÎÄ¼þ±äÁ¿´´½¨Çø******************/
+  26          u16 xdata funKey_WIFI_cnt               = 0;    //wifiÄ£¿éÎïÀí°´¼üÁ¬½ÓÒý½ÅÄ£Äâ°´¼üÊ±³¤¼ÆÊýÖµ
+  27          
+  28          /*/------------------------------------------------------/*/
+  29          #define cmdAT_packLenth 7
+  30          datsAttr_wifiInit code wifiCMD_dats[cmdAT_packLenth] = {                //Ë³Ðò½ûÖ¹¸ü¸Ä£¡£¡£¡
+  31                  
+  32          //      {{"\rAT+E\r\n"},                                                                {"AT+E", "AT+E"},                                               {4,4},          150},
+  33          //      {{"\rAT+WMODE=AP\r\n"},                                                 {"+ok\r\n",     "ok"},                                          {5,2},          150},
+  34          //      {{"\rAT+WMODE=STA\r\n"},                                                {"+ok\r\n",     "ok"},                                          {5,2},          150},
+  35          //      {{"\rAT+Z\r\n"},                                                                {"+ok\r\n",     "ok"},                                          {5,2},          200},
+  36          //      
+  37          //      {{"\rAT+NETP=UDP,SERVER,8866,192.168.5.1\r\n"}, {"+ok\r\n",     "ok"},                                          {5,2},          200},
+  38          //      
+  39          //      {{"\rAT+NETP=UDP,SERVER,8866,255.255.255.255\r\n"},{"+ok\r\n", "ok"},                                   {5,2},          200},   //²âÊÔ×¨ÓÃlog_s
+             -ocketA
+  40          //      {{"\rAT+SOCKB=UDPS,8866,255.255.255.255\r\n"},  {"+ok\r\n", "ok"},                                              {5,2},          200},   //²âÊÔ×¨ÓÃlog_sock
+             -etB
+  41          
+  42                  {{"AT+E\r\n"},                                                                  {"AT+E", "AT+E"},                                               {4,4},          150},
+  43                  {{"AT+WMODE=AP\r\n"},                                                   {"+ok\r\n",     "ok"},                                          {5,2},          200},
+  44                  {{"AT+WMODE=STA\r\n"},                                                  {"+ok\r\n",     "ok"},                                          {5,2},          150},
+  45                  {{"AT+Z\r\n"},                                                                  {"+ok\r\n",     "ok"},                                          {5,2},          200},
+  46                  
+  47                  {{"AT+NETP=UDP,SERVER,8866,192.168.5.1\r\n"},   {"+ok\r\n",     "ok"},                                          {5,2},          200},
+  48                  
+  49                  {{"AT+NETP=UDP,SERVER,8866,255.255.255.255\r\n"},{"+ok\r\n", "ok"},                                             {5,2},          200},   //²âÊÔ×¨ÓÃlog_sock
+             -etA
+  50                  {{"AT+SOCKB=UDPS,8866,255.255.255.255\r\n"},    {"+ok\r\n", "ok"},                                              {5,2},          200},   //²âÊÔ×¨ÓÃlog_socketB
+C51 COMPILER V9.54   WIFI_LPT220                                                           08/24/2018 15:55:00 PAGE 2   
+
+  51          };
+  52          
+  53          /*********************WIFIÄ£¿é¿ØÖÆÒý½Å³õÊ¼»¯******************/
+  54          void WIFI_pinInit(void){
+  55   1      
+  56   1              //RST_P26 ÍÆÍìÊä³ö
+  57   1              P2M1 &= 0xBF;
+  58   1              P2M0 |= 0x40; 
+  59   1              
+  60   1              //Rload_P12 ÍÆÍìÊä³ö
+  61   1              P1M1 &= 0xFB;
+  62   1              P1M0 |= 0x04; 
+  63   1              
+  64   1              //Rload_P13 ¸ß×èÊäÈë
+  65   1              P1M1 |= 0x08;
+  66   1              P1M0 &= 0xF7;
+  67   1              
+  68   1              //TXÍÆÍìÊä³ö
+  69   1              P3M1 &= 0xFD;   
+  70   1              P3M0 |= 0x02;   
+  71   1              
+  72   1              //RX¸ß×èÊäÈë
+  73   1              P3M1 |= 0x01;
+  74   1              P3M0 &= 0xFE;
+  75   1              
+  76   1              WIFI_funcPIN_nRst        = WIFI_pinDISEN;
+  77   1              WIFI_funcPIN_nReload = WIFI_pinDISEN;
+  78   1      }
+  79          
+  80          /*********************WIFIÄ£¿éÓ²¼þ¿ØÖÆsmartlink******************/
+  81          void WIFI_hwSmartLink(void){
+  82   1              
+  83   1              //ÖØÐÂ½â¿ªÉè±¸Ëø
+  84   1              {
+  85   2                      u8 deviceLock_IF = 0;
+  86   2                      
+  87   2                      deviceLock_flag  = 0;
+  88   2                      coverEEPROM_write_n(EEPROM_ADDR_deviceLockFLAG, &deviceLock_IF, 1);
+  89   2              }
+  90   1              
+  91   1              WIFI_funcPIN_nReload = WIFI_pinEN;
+  92   1              funKey_WIFI_cnt = 1000; //1000ms
+  93   1              
+  94   1              beeps(3);       //ÌáÊ¾
+  95   1              delayMs(1500);
+  96   1      }
+  97          
+  98          /*********************WIFIÄ£¿éÓ²¼þ¿ØÖÆ»Ö¸´³ö³§ÉèÖÃ******************/
+  99          void WIFI_hwRestoreFactory(void){
+ 100   1      
+ 101   1              WIFI_funcPIN_nReload = WIFI_pinEN;
+ 102   1              funKey_WIFI_cnt = 5000; //5000ms
+ 103   1              
+ 104   1              beeps(4);               //ÌáÊ¾£¬Óï¾äÏÂÖÃ£¬ÓëÉÏÃæ¶¯×÷Í¬²½½øÐÐ
+ 105   1              delayMs(2000);
+ 106   1      }
+ 107          
+ 108          /**********************************ÍËÍ¸´«*******************************/
+ 109          bit WIFI_ENTM_OUT(unsigned char repeatLoop){
+ 110   1              
+ 111   1              u8 loopOut = repeatLoop;
+ 112   1              
+C51 COMPILER V9.54   WIFI_LPT220                                                           08/24/2018 15:55:00 PAGE 3   
+
+ 113   1              while(SBUF != 'a' && (-- loopOut)){
+ 114   2              
+ 115   2                      uartObjWIFI_Send_Byte('+');
+ 116   2                      delayMs(200);
+ 117   2              }
+ 118   1              
+ 119   1              if(!loopOut)return 0;
+ 120   1              else loopOut = repeatLoop;
+ 121   1              
+ 122   1              while(SBUF != 'A' && (-- loopOut)){
+ 123   2              
+ 124   2                      uartObjWIFI_Send_Byte('a');
+ 125   2                      delayMs(100);
+ 126   2              }
+ 127   1              
+ 128   1              if(!loopOut)return 0;
+ 129   1              else return 1;
+ 130   1              
+ 131   1              return 0;
+ 132   1      }
+ 133          
+ 134          /*********************µ¥ÌõATÖ¸ÁîÏÂ´ï¼°ÑéÖ¤ÏìÓ¦******************/
+ 135          bit cmdAT_validation(char *cmd, char *reply[2], unsigned char replyLen[2], unsigned int timeWait, unsigned
+             - char repeatLoop){
+ 136   1      
+ 137   1              unsigned char loop      = 0,
+ 138   1                                        loopa = 0;
+ 139   1              
+ 140   1              u16 Local_Delay = 0;            
+ 141   1              
+ 142   1              uartRX_toutFLG = 0;
+ 143   1              for(loop = 0; loop < repeatLoop; loop ++){
+ 144   2                      
+ 145   2                      Local_Delay = timeWait; 
+ 146   2              
+ 147   2                      uartObjWIFI_Send_String(cmd, strlen(cmd));
+ 148   2                      
+ 149   2                      while(Local_Delay --){
+ 150   3                      
+ 151   3                              delayMs(2);
+ 152   3                              
+ 153   3                              if(uartRX_toutFLG){
+ 154   4                              
+ 155   4                                      uartRX_toutFLG = 0;
+ 156   4                                      for(loopa = 0; loopa < 2; loopa ++){
+ 157   5                                      
+ 158   5                                              if(memmem(datsRcv_ZIGB.rcvDats, datsRcv_ZIGB.rcvDatsLen, reply[loopa], replyLen[loopa])){
+ 159   6                                                      
+ 160   6                                                      return 1;
+ 161   6                                              }       
+ 162   5                                      }       
+ 163   4                              }               
+ 164   3                      }
+ 165   2              }       
+ 166   1              
+ 167   1              return 0;
+ 168   1      }
+ 169          
+ 170          /*********************µ¥ÌõATÖ¸ÁîÏÂ´ï¼°ÑéÖ¤ÏìÓ¦¡ª¡ªÐÎ²Î½á¹¹Ìå´ò°ü******************/
+ 171          bit cmdPackAT_validation(datsAttr_wifiInit cmdPack, unsigned char repeatLoop){
+ 172   1      
+ 173   1              return cmdAT_validation(cmdPack.wifiInit_reqCMD,
+C51 COMPILER V9.54   WIFI_LPT220                                                           08/24/2018 15:55:00 PAGE 4   
+
+ 174   1                                                              cmdPack.wifiInit_REPLY,
+ 175   1                                                              cmdPack.REPLY_DATLENTAB,
+ 176   1                                                              cmdPack.timeTab_waitAnsr,
+ 177   1                                                              repeatLoop);
+ 178   1      }
+ 179          
+ 180          /*********************WIFIÄ£¿éÍøÂç²ÎÊýÅäÖÃ³õÊ¼»¯******************/
+ 181          bit WIFI_configInit(void){
+ 182   1              
+ 183   1              u8 xdata serverIP_temp[4]       = {0};
+ 184   1              u8 xdata ATCMD_temp[40]         = {0};
+ 185   1              
+ 186   1              u16 data tOut_cnt       = 5000;
+ 187   1              
+ 188   1              WIFI_funcPIN_nRst       = WIFI_pinEN;   //Ó²¼þ¸´Î»Ò»´Î
+ 189   1              delayMs(200);
+ 190   1              WIFI_funcPIN_nRst       = WIFI_pinDISEN;
+ 191   1              delayMs(3000);
+ 192   1      //      WIFI_funcPIN_nReload = WIFI_pinEN;
+ 193   1      //      delayMs(1000);
+ 194   1      //      WIFI_funcPIN_nReload = WIFI_pinDISEN;
+ 195   1              
+ 196   1              
+ 197   1              while(WIFI_tipsPIN_nReady && (tOut_cnt --))delayMs(1);
+ 198   1              if(!tOut_cnt)return 0;
+ 199   1      
+ 200   1              if(!WIFI_ENTM_OUT(15))return 0;                                                         //ÍËÍ¸´«
+ 201   1              
+ 202   1              if(!cmdPackAT_validation(wifiCMD_dats[0], 5))return 0;          //Ïû»Ø´«
+ 203   1              delayMs(10);
+ 204   1              
+ 205   1      #if(TEST_LOG == 1)
+                      
+                      if(!cmdPackAT_validation(wifiCMD_dats[1], 5))return 0;
+                      
+                      sprintf(ATCMD_temp, "AT+WAP=11BGN,LANBON_swTestLog,AUTO\r\n");
+                      if(!cmdAT_validation(ATCMD_temp,                                                //AP_SSIDÅäÖÃ
+                                                               wifiCMD_dats[4].wifiInit_REPLY,
+                                                               wifiCMD_dats[4].REPLY_DATLENTAB,
+                                                               wifiCMD_dats[4].timeTab_waitAnsr,
+                                                               5))return 0; 
+                      delayMs(10);
+                      
+                      memset(ATCMD_temp, 0, 40 * sizeof(u8));
+              //      sprintf(ATCMD_temp, "AT+WAKEY=WPA2PSK,AES,88888888\r\n");
+                      sprintf(ATCMD_temp, "AT+WAKEY=OPEN,NONE\r\n");  
+                      if(!cmdAT_validation(ATCMD_temp,                                                //AP_ÃÜÂëÅäÖÃ
+                                                               wifiCMD_dats[4].wifiInit_REPLY,
+                                                               wifiCMD_dats[4].REPLY_DATLENTAB,
+                                                               wifiCMD_dats[4].timeTab_waitAnsr,
+                                                               5))return 0; 
+                      delayMs(10);
+                      
+                      memset(ATCMD_temp, 0, 40 * sizeof(u8));
+                      if(!cmdPackAT_validation(wifiCMD_dats[5], 5))return 0;  //socketA_logÅäÖÃ
+                      delayMs(10);
+                      if(!cmdPackAT_validation(wifiCMD_dats[6], 5))return 0;  //socketB_logÅäÖÃ
+                      delayMs(10);
+                      
+              #else
+ 234   1                      
+ 235   1              if(!cmdPackAT_validation(wifiCMD_dats[2], 5))return 0;
+C51 COMPILER V9.54   WIFI_LPT220                                                           08/24/2018 15:55:00 PAGE 5   
+
+ 236   1                      
+ 237   1              if(!cmdPackAT_validation(wifiCMD_dats[4], 5))return 0;  //socket_AÅäÖÃ
+ 238   1              
+ 239   1              EEPROM_read_n(EEPROM_ADDR_serverIP_record, &serverIP_temp[0], 4);
+ 240   1              sprintf(ATCMD_temp, "AT+SOCKB=UDP,80,%d.%d.%d.%d\r\n",  (int)serverIP_temp[0], 
+ 241   1                                                                                                                              (int)serverIP_temp[1], 
+ 242   1                                                                                                                              (int)serverIP_temp[2], 
+ 243   1                                                                                                                              (int)serverIP_temp[3]);
+ 244   1              delayMs(10);
+ 245   1                                                                                                                         
+ 246   1              if(!cmdAT_validation(ATCMD_temp,                                                //socket_BÅäÖÃ
+ 247   1                                                       wifiCMD_dats[4].wifiInit_REPLY,
+ 248   1                                                       wifiCMD_dats[4].REPLY_DATLENTAB,
+ 249   1                                                       wifiCMD_dats[4].timeTab_waitAnsr,
+ 250   1                                                       5))return 0; 
+ 251   1              delayMs(10);
+ 252   1              
+ 253   1      #endif
+ 254   1      
+ 255   1      //      if(!cmdPackAT_validation(wifiCMD_dats[3], 5))return 0;          //wifiÖØÆô
+ 256   1              
+ 257   1              uartObjWIFI_Send_String(wifiCMD_dats[3].wifiInit_reqCMD, strlen(wifiCMD_dats[3].wifiInit_reqCMD));      //ÖØÆô
+             -½øÍ¸´«
+ 258   1              delayMs(200);
+ 259   1              uartObjWIFI_Send_String(wifiCMD_dats[3].wifiInit_reqCMD, strlen(wifiCMD_dats[3].wifiInit_reqCMD));      
+ 260   1              
+ 261   1              while(WIFI_tipsPIN_nReady && (tOut_cnt --))delayMs(1);
+ 262   1              if(!tOut_cnt)return 0;
+ 263   1                      
+ 264   1              return 1;
+ 265   1      }
+ 266          
+ 267          /*********************UDP_IP¸ü±ä******************/
+ 268                  bit WIFI_serverUDP_CHG(unsigned char ip[4]){
+ 269   1      
+ 270   1              unsigned char idata ipNem_temp[40]              = {0},
+ 271   1                                        idata ipRecord_temp[4]        = {0};
+ 272   1                                        
+ 273   1              EEPROM_read_n(EEPROM_ADDR_serverIP_record, ipRecord_temp, 4);
+ 274   1              if(!memcmp(ipRecord_temp, ip, 4))return 1;
+ 275   1              else{
+ 276   2                      
+ 277   2                      coverEEPROM_write_n(EEPROM_ADDR_serverIP_record, ip, 4);
+ 278   2              
+ 279   2                      sprintf(ipNem_temp, "AT+SOCKB=UDP,80,%d.%d.%d.%d\r\n", (int)ip[0], (int)ip[1], (int)ip[2], (int)ip[3]);
+ 280   2                      
+ 281   2                      if(!WIFI_ENTM_OUT(10))return 0;
+ 282   2                      if(!cmdPackAT_validation(wifiCMD_dats[0], 5))return 0;
+ 283   2                      
+ 284   2                      if(!cmdAT_validation(ipNem_temp,                                                //socket_BÅäÖÃ
+ 285   2                                                               wifiCMD_dats[4].wifiInit_REPLY,
+ 286   2                                                               wifiCMD_dats[4].REPLY_DATLENTAB,
+ 287   2                                                               wifiCMD_dats[4].timeTab_waitAnsr,
+ 288   2                                                               5))return 0; 
+ 289   2                      
+ 290   2      //              if(!cmdPackAT_validation(wifiCMD_dats[3], 5))return 0;
+ 291   2                      uartObjWIFI_Send_String(wifiCMD_dats[3].wifiInit_reqCMD, strlen(wifiCMD_dats[3].wifiInit_reqCMD));      //ÖØÆ
+             -ô½øÍ¸´«
+ 292   2                      delayMs(200);
+ 293   2                      uartObjWIFI_Send_String(wifiCMD_dats[3].wifiInit_reqCMD, strlen(wifiCMD_dats[3].wifiInit_reqCMD));      
+ 294   2                      
+ 295   2                      return 1;
+C51 COMPILER V9.54   WIFI_LPT220                                                           08/24/2018 15:55:00 PAGE 6   
+
+ 296   2              }
+ 297   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1093    ----
+   CONSTANT SIZE    =    383    ----
+   XDATA SIZE       =      2      44
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      38
+   IDATA SIZE       =   ----      44
+   BIT SIZE         =   ----    ----
+   EDATA SIZE       =   ----    ----
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

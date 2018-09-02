@@ -1,0 +1,446 @@
+C51 COMPILER V9.54   APPTIMER                                                              08/24/2018 15:54:59 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE APPTIMER
+OBJECT MODULE PLACED IN .\Output\appTimer.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE Usr\appTimer.c OMF2 ROM(COMPACT) OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Proj
+                    -_sw_ElecMeasure;.\Usr;.\Usr_lib;.\std_Lib;.\hwDriver;.\dataTrans) DEBUG PRINT(.\Listings\appTimer.lst) OBJECT(.\Output\a
+                    -ppTimer.obj)
+
+line level    source
+
+   1          #include "appTimer.h"
+   2          
+   3          #include "STC15Fxxxx.H"
+   4          
+   5          #include "stdio.h"
+   6          #include "string.h"
+   7          
+   8          #include "dataTrans.h"
+   9          #include "Relay.h"
+  10          #include "HW8012.h"
+  11          #include "wifi_LPT220.h"
+  12          #include "Tips.h"
+  13          #include "dataManage.h"
+  14          #include "eeprom.h"
+  15          
+  16          //*********************数据传输变量引用区***************************/
+  17          extern bit                              rxTout_count_EN;        
+  18          extern u8                               rxTout_count;   //串口接收超时计数
+  19          extern bit                              uartRX_toutFLG;
+  20          extern u8                               datsRcv_length;
+  21          extern uartTout_datsRcv xdata datsRcv_ZIGB;
+  22          
+  23          //*********************WIFI模块功能引脚按键线程变量引用区*********/
+  24          extern u16 xdata                funKey_WIFI_cnt;
+  25          
+  26          //*********************数据传输相关变量引用区*********************/
+  27          extern u16 xdata                heartBeat_Cnt;
+  28          
+  29          //*********************继电器相关变量引用区*********************/
+  30          extern bit                              status_Relay;
+  31          
+  32          //*********************定时延时业务相关变量引用区*****************/
+  33          extern switch_Status    swStatus_fromTim;
+  34          extern u8                               ifDelay_sw_running_FLAG;        //延时动作_是否运行标志位（bit 1延时开关运行使能标志，bit 0定时关闭
+             -运行使能标志）
+  35          extern u16                              delayCnt_onoff;
+  36          extern u8                               delayPeriod_onoff;
+  37          extern bit                              delayUp_act;
+  38          extern u16                              delayCnt_closeLoop;
+  39          extern u8                               delayPeriod_closeLoop;
+  40          
+  41          //***************用户按键线程变量引用区*****************/
+  42          extern bit                              usrKeyCount_EN;
+  43          extern u16      idata           usrKeyCount;
+  44          
+  45          //*********************Tips变量引用区****************************/
+  46          extern enum_segTips dev_segTips;
+  47          extern enum_ledTips dev_ledTips;
+  48          
+  49          void appTimer0_Init(void){      //50us 中断@24.000M
+  50   1      
+  51   1              AUXR |= 0x80;           
+  52   1              TMOD &= 0xF0;           
+C51 COMPILER V9.54   APPTIMER                                                              08/24/2018 15:54:59 PAGE 2   
+
+  53   1              TL0   = 0x50;           
+  54   1              TH0   = 0xFB;   
+  55   1              TF0   = 0;      
+  56   1              ET0       = 1;  //开中断
+  57   1              PT0   = 0;      //高优先级中断
+  58   1              
+  59   1              TR0   = 1;              
+  60   1      }
+  61          
+  62          void timer0_Rountine (void) interrupt TIMER0_VECTOR{    
+  63   1              
+  64   1              u32 code fpDetect_Period                = 100000UL;     //测频检测周期5秒  100000 * 50us = 5s
+  65   1              static xdata u32 fpDetect_Cnt   = 0UL;
+  66   1              
+  67   1              u16 code  fpDetectPeriod_stdBy  = 1000;         //负载检测tips_standBy
+  68   1              static xdata u16 fpDetectCount_stdBy = 0;
+  69   1      
+  70   1              u8 code   period_1ms                    = 20;           //1ms专用
+  71   1              static u8 count_1ms                     = 0;
+  72   1              
+  73   1              u16 code period_1second                 = 20000;        //1秒专用
+  74   1              static xdata u16 count_1second  = 0;    
+  75   1              
+  76   1              u16 code tipsInit_Period                = 1000;         //延时检测计数周期
+  77   1              static xdata u16 tipsInit_Cnt   = 0;    
+  78   1              
+  79   1              u8 code   period_beep                   = 2;            //beep专用
+  80   1              static u8 count_beep                    = 0;
+  81   1              
+  82   1              //*******************beep计时计数业务**************************/
+  83   1              if(count_beep < period_beep)count_beep ++;
+  84   1              else{
+  85   2              
+  86   2                      count_beep = 0;
+  87   2                      
+  88   2                      switch(dev_beeps){ //状态机
+  89   3                              
+  90   3                              case beepsMode_Touch:{
+  91   4                                      
+  92   4                                      u16 code tips_Period = 20 * 300 / 2;
+  93   4                                      static u16 xdata tips_Count = 0;
+  94   4                                      
+  95   4                                      if(tipsBeep_INTFLG){
+  96   5                                      
+  97   5                                              tipsBeep_INTFLG = 0;
+  98   5                                              tips_Count = 0;
+  99   5                                      }
+ 100   4                                      
+ 101   4                                      if(tips_Count < tips_Period){
+ 102   5                                      
+ 103   5                                              tips_Count ++;
+ 104   5                                              PIN_BEEP = !PIN_BEEP;
+ 105   5                                              
+ 106   5                                      }
+ 107   4                                      else
+ 108   4                                      {
+ 109   5                                      
+ 110   5                                              tips_Count = 0;
+ 111   5                                              
+ 112   5                                              PIN_BEEP = 1;
+ 113   5                                              dev_beeps = beepsMode_null;
+ 114   5                                      }
+C51 COMPILER V9.54   APPTIMER                                                              08/24/2018 15:54:59 PAGE 3   
+
+ 115   4                                      
+ 116   4                              }break;
+ 117   3                      
+ 118   3                              default:{
+ 119   4                              
+ 120   4                                      PIN_BEEP = 1;
+ 121   4                                      
+ 122   4                              }break;
+ 123   3                      }
+ 124   2              }
+ 125   1              
+ 126   1              //*******************tips流水灯计时计数业务**************************/
+ 127   1              if(tipsInit_Cnt < tipsInit_Period)tipsInit_Cnt ++;
+ 128   1              else{
+ 129   2              
+ 130   2                      tipsInit_Cnt  = 0;
+ 131   2                      
+ 132   2                      switch(dev_segTips){ //状态机
+ 133   3                      
+ 134   3                              case segMode_init:{
+ 135   4                              
+ 136   4                                      segTips_Init();
+ 137   4                                      
+ 138   4                              }break;
+ 139   3                              
+ 140   3                              case segMode_initCmp:{
+ 141   4                              
+ 142   4                                      segTips_InitCmp();
+ 143   4                                      
+ 144   4                              }break;
+ 145   3                              
+ 146   3                              case segMode_touchOpen:{
+ 147   4                              
+ 148   4                                      segTips_touchOpen();
+ 149   4                                      
+ 150   4                              }break;
+ 151   3                              
+ 152   3                              case segMode_touchClose:{
+ 153   4                              
+ 154   4                                      segTips_touchClose();
+ 155   4                                      
+ 156   4                              }break;
+ 157   3                              
+ 158   3                              case segMode_elecDetectStandby:{
+ 159   4                              
+ 160   4                                      segTips_detectStandBy();
+ 161   4                                      
+ 162   4                              }break;
+ 163   3                              
+ 164   3                              case segMode_elecDetect:{
+ 165   4                              
+ 166   4                                      powerTips(paramElec_Param.ePower);      //功率Tips显示
+ 167   4                                      
+ 168   4                              }break;
+ 169   3                                      
+ 170   3                              default:{
+ 171   4                              
+ 172   4                                      segTips_allDark();
+ 173   4                                      
+ 174   4                              }break;
+ 175   3                      }
+ 176   2              }
+C51 COMPILER V9.54   APPTIMER                                                              08/24/2018 15:54:59 PAGE 4   
+
+ 177   1              
+ 178   1              //*******************tips指示灯业务**************************/
+ 179   1              switch(dev_ledTips){ //状态机
+ 180   2              
+ 181   2                      case ledMode_init:{
+ 182   3                      
+ 183   3                              PIN_LED = tipsLED_statusON;
+ 184   3                              
+ 185   3                      }break;
+ 186   2                      
+ 187   2                      case ledMode_relayOpenIF:{
+ 188   3                      
+ 189   3                              (status_Relay)?(PIN_LED = tipsLED_statusON):(PIN_LED = tipsLED_statusOFF);
+ 190   3                      
+ 191   3                      }break; 
+ 192   2                      
+ 193   2                      case ledMode_smartConfig:{
+ 194   3                      
+ 195   3                              u16 code tips_Period    = 20 * 150;
+ 196   3                              static u16 xdata tips_Count = 0;
+ 197   3                              u8  code loop_Period    = 60;
+ 198   3                              static u8 tips_Loop     = 60;
+ 199   3                              
+ 200   3                              if(tips_Count < tips_Period)tips_Count ++;
+ 201   3                              else{
+ 202   4      
+ 203   4                                      tips_Count = 0;
+ 204   4                                      
+ 205   4                                      if(tips_Loop){
+ 206   5                                      
+ 207   5                                              tips_Loop --;
+ 208   5                                              PIN_LED = !PIN_LED;
+ 209   5                                              
+ 210   5                                      }else{
+ 211   5                                      
+ 212   5                                              PIN_LED         = tipsLED_statusOFF;
+ 213   5                                              tips_Loop       = loop_Period;
+ 214   5                                              dev_ledTips = ledMode_relayOpenIF;
+ 215   5                                      }
+ 216   4                              }
+ 217   3                              
+ 218   3                      }break;
+ 219   2                      
+ 220   2                      case ledMode_factory:{
+ 221   3                      
+ 222   3                              u16 code tips_Period = 20 * 6000;
+ 223   3                              static u16 xdata tips_Count = 0;
+ 224   3                              
+ 225   3                              PIN_LED = tipsLED_statusON;
+ 226   3                              if(tips_Count < tips_Period)tips_Count ++;
+ 227   3                              else{
+ 228   4                              
+ 229   4                                      tips_Count = 0;
+ 230   4                                      
+ 231   4                                      PIN_LED = tipsLED_statusOFF;
+ 232   4                                      dev_ledTips = ledMode_relayOpenIF;
+ 233   4                              }
+ 234   3                              
+ 235   3                      }break;
+ 236   2                      
+ 237   2                      default:{
+ 238   3                      
+C51 COMPILER V9.54   APPTIMER                                                              08/24/2018 15:54:59 PAGE 5   
+
+ 239   3                              PIN_LED = tipsLED_statusOFF;
+ 240   3                      
+ 241   3                      }break;
+ 242   2              }
+ 243   1              
+ 244   1              //*******************标准1秒计数业务***************************/
+ 245   1              if(count_1second < period_1second)count_1second ++;
+ 246   1              else{
+ 247   2                      
+ 248   2                      count_1second = 0;
+ 249   2              
+ 250   2                      /*延时计时业务，到点动作*/
+ 251   2                      if(ifDelay_sw_running_FLAG & (1 << 1)){
+ 252   3                      
+ 253   3                              if(delayCnt_onoff < ((u16)delayPeriod_onoff * 60))delayCnt_onoff ++;
+ 254   3                              else
+ 255   3                              if(delayCnt_onoff){ //计时值确认
+ 256   4                              
+ 257   4                                      delayCnt_onoff = 0;
+ 258   4                                      
+ 259   4                                      ifDelay_sw_running_FLAG &= ~(1 << 1);   //一次性标志清除
+ 260   4                                      
+ 261   4                                      (delayUp_act)?(swStatus_fromTim = swStatus_on):(swStatus_fromTim = swStatus_off);       //开关动作
+ 262   4                              }
+ 263   3                      }
+ 264   2                      
+ 265   2                      /*绿色模式计时业务，循环关闭*/
+ 266   2                      if((ifDelay_sw_running_FLAG & (1 << 0)) && status_Relay){
+ 267   3                      
+ 268   3                              if(delayCnt_closeLoop < ((u16)delayPeriod_closeLoop * 60))delayCnt_closeLoop ++;
+ 269   3                              else{
+ 270   4                                      
+ 271   4                                      delayCnt_closeLoop = 0;
+ 272   4                              
+ 273   4                                      swStatus_fromTim = swStatus_off;
+ 274   4                              }
+ 275   3                      }
+ 276   2              }
+ 277   1              
+ 278   1              //*******************标准1毫秒计数业务**************************/
+ 279   1              if(count_1ms < period_1ms)count_1ms ++;
+ 280   1              else{
+ 281   2              
+ 282   2                      count_1ms = 0;
+ 283   2                      
+ 284   2                      /*心跳包周期计数*/
+ 285   2                      heartBeat_Cnt++;
+ 286   2                      
+ 287   2                      /*用户按键超时计数*/
+ 288   2                      if(usrKeyCount_EN)usrKeyCount ++;
+ 289   2                      
+ 290   2                      /*WIFI模块功能引脚按键计数业务区*/
+ 291   2                      if(funKey_WIFI_cnt)funKey_WIFI_cnt --;
+ 292   2                      else{
+ 293   3                      
+ 294   3                              WIFI_funcPIN_nReload = WIFI_pinDISEN;   //WIFI外部引脚控制业务
+ 295   3                      }
+ 296   2                      
+ 297   2                      /*HLW8012测频Tips-standBy*///预检测
+ 298   2                      if(fpDetectCount_stdBy < fpDetectPeriod_stdBy)fpDetectCount_stdBy ++;
+ 299   2                      else{
+ 300   3                              
+C51 COMPILER V9.54   APPTIMER                                                              08/24/2018 15:54:59 PAGE 6   
+
+ 301   3                              static xdata float pinFP_powerStdby_local = 0.0F;
+ 302   3                              
+ 303   3                              fpDetectCount_stdBy = 0;
+ 304   3                              
+ 305   3                              pinFP_powerStdby = pinFP_powerCNT / 1.0F;
+ 306   3                              if(status_Relay == actRelay_ON){
+ 307   4                              
+ 308   4                                      if(pinFP_powerStdby > 5.0F && pinFP_powerStdby_local <= 5.0F){ //升序
+ 309   5                                              
+ 310   5                                              dev_segTips = segMode_elecDetectStandby;
+ 311   5                                              tipsSeg_INTFLG = 1;
+ 312   5                                              
+ 313   5                                      }else
+ 314   4                                      if(pinFP_powerStdby_local >= 5.0F && pinFP_powerStdby < 5.0F){ //降序
+ 315   5                                      
+ 316   5                                              dev_segTips = segMode_null;
+ 317   5                                              tipsSeg_INTFLG = 1;
+ 318   5                                      }
+ 319   4                              }
+ 320   3                              
+ 321   3                              pinFP_powerStdby_local = pinFP_powerStdby;
+ 322   3                      }
+ 323   2              }
+ 324   1              
+ 325   1              //***************串口接收超时时长计数*******************************//
+ 326   1              if(rxTout_count_EN){
+ 327   2              
+ 328   2                      if(rxTout_count < TimeOutSet1)rxTout_count ++;
+ 329   2                      else{
+ 330   3                              
+ 331   3                              if(!uartRX_toutFLG){
+ 332   4                              
+ 333   4                                      uartRX_toutFLG = 1;
+ 334   4                                      
+ 335   4                                      memset(datsRcv_ZIGB.rcvDats, 0xff, sizeof(char) * COM_RX1_Lenth);
+ 336   4                                      memcpy(datsRcv_ZIGB.rcvDats, RX1_Buffer, datsRcv_length);
+ 337   4                                      datsRcv_ZIGB.rcvDatsLen = datsRcv_length;
+ 338   4                              }
+ 339   3                              rxTout_count_EN = 0;
+ 340   3                      }
+ 341   2              }
+ 342   1              
+ 343   1              //*******************HLW8012测频业务****************************        
+ 344   1              if(fpDetect_Cnt <= fpDetect_Period)fpDetect_Cnt ++;
+ 345   1              else{
+ 346   2              
+ 347   2                      fpDetect_Cnt     = 0;
+ 348   2                      
+ 349   2                      pinFP_volXcur    = pinFP_volXcurCNT / 5.0F;     //值确认
+ 350   2                      pinFP_power              = pinFP_powerCNT / 5.0F;
+ 351   2                      
+ 352   2                      if(pinFP_power > 5.0){
+ 353   3                      
+ 354   3                              if(status_Relay == actRelay_ON){
+ 355   4                              
+ 356   4                                      dev_segTips = segMode_elecDetect;
+ 357   4                                      tipsSeg_INTFLG = 1;
+ 358   4                              }
+ 359   3                      }
+ 360   2                      
+ 361   2                      if(pin_funFP_Select){   //电压
+ 362   3                      
+C51 COMPILER V9.54   APPTIMER                                                              08/24/2018 15:54:59 PAGE 7   
+
+ 363   3                              paramElec_Param.eVoltage = pinFP_volXcur * (coefficient_Vol - (0.00000082 * pinFP_volXcur));
+ 364   3                              
+ 365   3                      }else{  //电流
+ 366   3                      
+ 367   3      //                      paramElec_Param.eCurrent = (float)pinFP_volXcur * coefficient_Cur;
+ 368   3                              
+ 369   3                              paramElec_Param.eCurrent = pinFP_volXcur * (coefficient_Cur + (0.00000246 * pinFP_volXcur));
+ 370   3                      }
+ 371   2                      
+ 372   2      //              /*测试数据*///测试代码段
+ 373   2      //              {
+ 374   2      //              
+ 375   2      //                      static float xdata test_elec_Consum = 0.0,
+ 376   2      //                                               xdata test_ePower        = 0.0;
+ 377   2      //                      
+ 378   2      //                      test_elec_Consum += 0.0001;
+ 379   2      //                      test_ePower              += 0.0001;
+ 380   2      //                      
+ 381   2      //                      elec_Consum                             = test_elec_Consum;
+ 382   2      //                      paramElec_Param.ePower  = test_ePower;
+ 383   2      //              }
+ 384   2                      
+ 385   2                      //避免浮点数全部为零计算时出现非法值
+ 386   2      //              if(!pinFP_powerCNT) pinFP_powerCNT = 1;
+ 387   2      //              if(!pinFP_power) pinFP_power = 1; 
+ 388   2      //              if(paramElec_Param.ePower < 0.1) paramElec_Param.ePower = 0.1;
+ 389   2      
+ 390   2                      /*实际业务逻辑*/
+ 391   2                      paramElec_Param.ePower = (float)pinFP_power * (coefficient_Pow - (0.00000001 * pinFP_power));   //功率
+ 392   2                      
+ 393   2                      {
+ 394   3                              u16 powerFP_Temp = pinFP_power;
+ 395   3                              
+ 396   3                              if(!powerFP_Temp)powerFP_Temp = 1;
+ 397   3                              elec_Consum     += 1.00F * ((float)pinFP_powerCNT * paramElec_Param.ePower / (1000.00F * 3600.00F * (float)
+             -powerFP_Temp)); //用电量
+ 398   3                      }
+ 399   2                      
+ 400   2                      pinFP_volXcurCNT = 0.0; //脉冲清零
+ 401   2                      pinFP_powerCNT   = 0.0;
+ 402   2              }
+ 403   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1448    ----
+   CONSTANT SIZE    =     19    ----
+   XDATA SIZE       =     20    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      3       2
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+   EDATA SIZE       =   ----    ----
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

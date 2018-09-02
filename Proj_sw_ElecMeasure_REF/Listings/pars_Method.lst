@@ -1,0 +1,65 @@
+C51 COMPILER V9.54   PARS_METHOD                                                           08/24/2018 15:55:00 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE PARS_METHOD
+OBJECT MODULE PLACED IN .\Output\pars_Method.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE Usr_lib\pars_Method.c OMF2 ROM(COMPACT) OPTIMIZE(8,SPEED) BROWSE INCDIR(
+                    -..\Proj_sw_ElecMeasure;.\Usr;.\Usr_lib;.\std_Lib;.\hwDriver;.\dataTrans) DEBUG PRINT(.\Listings\pars_Method.lst) OBJECT(
+                    -.\Output\pars_Method.obj)
+
+line level    source
+
+   1          #include "pars_Method.h"
+   2          #include "string.h"
+   3          
+   4          void *memmem(void *start, unsigned char s_len, void *find, unsigned char f_len){
+   5   1      
+   6   1              unsigned char len       = 0;
+   7   1                              char *p         = start, 
+   8   1                                       *q             = find;
+   9   1              
+  10   1              while((p - (char *)start + f_len) <= s_len){
+  11   2              
+  12   2                      while(*p ++ == *q ++){
+  13   3                      
+  14   3                              len ++;
+  15   3                              if(len == f_len)return (p - f_len);
+  16   3                      }
+  17   2                      
+  18   2                      q       = find;
+  19   2                      len = 0;
+  20   2              }
+  21   1              
+  22   1              return NULL;
+  23   1      }
+  24          
+  25          int memloc(u8 mem2[],u8 num_s2,u8 mem1[],u8 num_s1)
+  26          {
+  27   1              int la = num_s1;
+  28   1              int i, j;
+  29   1              int lb = num_s2;
+  30   1              for(i = 0; i < lb; i ++)
+  31   1              {
+  32   2                      for(j = 0; j < la && i + j < lb && mem1[j] == mem2[i + j]; j ++);
+  33   2                      if(j == la)return i;
+  34   2              }
+  35   1              return -1;
+  36   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    289    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      29
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+   EDATA SIZE       =   ----    ----
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

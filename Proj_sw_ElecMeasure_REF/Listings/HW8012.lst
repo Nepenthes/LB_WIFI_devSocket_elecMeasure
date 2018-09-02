@@ -1,0 +1,192 @@
+C51 COMPILER V9.54   HW8012                                                                08/24/2018 15:55:00 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE HW8012
+OBJECT MODULE PLACED IN .\Output\HW8012.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE hwDriver\HW8012.c OMF2 ROM(COMPACT) OPTIMIZE(8,SPEED) BROWSE INCDIR(..\P
+                    -roj_sw_ElecMeasure;.\Usr;.\Usr_lib;.\std_Lib;.\hwDriver;.\dataTrans) DEBUG PRINT(.\Listings\HW8012.lst) OBJECT(.\Output\
+                    -HW8012.obj)
+
+line level    source
+
+   1          #include "HW8012.h"
+   2          
+   3          #include "dataTrans.h"
+   4          #include "USART.h"
+   5          
+   6          #include "stdio.h"
+   7          #include "string.h"
+   8          
+   9          #include "soft_uart.h"
+  10          
+  11          #include "pars_Method.h"
+  12          #include "Tips.h"
+  13          #include "dataManage.h"
+  14          #include "eeprom.h"
+  15          
+  16          #include "delay.h"
+  17          
+  18          /*脉冲计数值*/
+  19          float xdata pinFP_volXcurCNT = 1.0F; //电流电压脉冲计数值
+  20          float xdata pinFP_powerCNT       = 1.0F; //功率脉冲计数值
+  21          
+  22          /*频率定值*/
+  23          float xdata pinFP_volXcur        = 1.0F; //电流电压 检测频率值
+  24          float xdata pinFP_power          = 1.0F; //功率 检测频率值 5秒周期
+  25          float xdata pinFP_powerStdby = 1.0F; //功率 预检测频率值 1秒周期
+  26          
+  27          elec_Param      xdata paramElec_Param = {0.001f, 0.001f, 0.001f};       //电参数变量
+  28          float           xdata elec_Consum         = 0.00000001f;
+  29          
+  30          void intMeasure_Init(void){
+  31   1              
+  32   1              /*U/I select IO*///推挽输出
+  33   1              P0M1    &= 0xFD;
+  34   1              P0M0    |= 0x02;
+  35   1              
+  36   1              /*频率信号输出 IO*///高阻输入
+  37   1              P3M1    |= 0xC0;
+  38   1              P3M0    &= 0x3F;
+  39   1      
+  40   1              INT_CLKO |=  (1 << 4);  //(EX2 = 1)使能INT2中断
+  41   1              INT_CLKO |=  (1 << 5);  //(EX3 = 1)使能INT3中断
+  42   1              
+  43   1              PX1 = PX0 = 0;
+  44   1              
+  45   1              pin_funFP_Select = 1;
+  46   1      }
+  47          
+  48          /********************* INT2中断函数 *************************/
+  49          void Ext_INT2 (void) interrupt INT2_VECTOR{     //进中断时已经清除标志
+  50   1      
+  51   1              pinFP_powerCNT += 1.0;
+  52   1      }
+  53          
+C51 COMPILER V9.54   HW8012                                                                08/24/2018 15:55:00 PAGE 2   
+
+  54          void Ext_INT3 (void) interrupt INT3_VECTOR{     //进中断时已经清除标志
+  55   1      
+  56   1              pinFP_volXcurCNT += 1.0;
+  57   1      }
+  58          
+  59          //float elecConsum_save_read(void){
+  60          
+  61          //      unsigned long xdata temp = 0UL;
+  62          //      u8 xdata valTemp_save[4] = {0};
+  63          //      
+  64          //      EEPROM_read_n(EEPROM_ADDR_elecValSaveMark, valTemp_save, 4);
+  65          //      temp |= (u32)valTemp_save[0] << 0;
+  66          //      temp |= (u32)valTemp_save[1] << 8;
+  67          //      temp |= (u32)valTemp_save[2] << 16;
+  68          //      temp |= (u32)valTemp_save[3] << 24;
+  69          //      
+  70          //      return ((float)temp / 100000000.00F);
+  71          //}
+  72          
+  73          //void floatVal_save(float val, bit reCord_IF){
+  74          
+  75          //      unsigned long xdata temp = 0UL;
+  76          //      u8 xdata valTemp_save[4] = {0};
+  77          //      
+  78          //      float xdata dataBase = elecConsum_save_read();
+  79          ////    float xdata dataBase = 0.1234F;
+  80          //      
+  81          //      if(reCord_IF)dataBase = val;
+  82          //      else{
+  83          //      
+  84          //              dataBase += val;
+  85          //      }
+  86          //      
+  87          //      temp = (unsigned long)(dataBase * 100000000.00F);
+  88          //      valTemp_save[0] = (u8)((temp & 0x000000ffUL) >>  0);
+  89          //      valTemp_save[1] = (u8)((temp & 0x0000ff00UL) >>  8);
+  90          //      valTemp_save[2] = (u8)((temp & 0x00ff0000UL) >> 16);
+  91          //      valTemp_save[3] = (u8)((temp & 0xff000000UL) >> 24);
+  92          //      
+  93          //      coverEEPROM_write_n(EEPROM_ADDR_elecValSaveMark, valTemp_save, 4);
+  94          //}
+  95          
+  96          void elecParamLog_thread(void){
+  97   1      
+  98   1              const   u16 log_Period  = 600;
+  99   1              static  u16 log_Cnt             = 0;
+ 100   1              
+ 101   1              u8 xdata log_Info[80];
+ 102   1              
+ 103   1              if(NULL != memmem(rxBuff_WIFI, COM_RX1_Lenth, "signal switch", 13)){
+ 104   2              
+ 105   2                      rxBuff_WIFI_Clr();
+ 106   2                      pin_funFP_Select = !pin_funFP_Select;
+ 107   2                      memset(log_Info, 0, sizeof(u8) * 40);
+ 108   2                      sprintf(log_Info, "set %d ok!\n", (int)pin_funFP_Select);
+ 109   2                      uartObjWIFI_Send_String(log_Info, strlen(log_Info));
+ 110   2              }
+ 111   1              
+ 112   1              if(log_Cnt < log_Period)log_Cnt ++;
+ 113   1              else{
+ 114   2              
+ 115   2                      log_Cnt = 0;
+C51 COMPILER V9.54   HW8012                                                                08/24/2018 15:55:00 PAGE 3   
+
+ 116   2                      
+ 117   2      //              paramElec_Param.eVoltage = paramElec_Param.eCurrent = paramElec_Param.ePower = elec_Consum = 123.45600
+             -;
+ 118   2                      
+ 119   2                      /*数据输出测试*///8051性能有限，sprintf浮点数输出极限为2个单位，故分次打印输出，效果一样
+ 120   2                      memset(log_Info, 0, sizeof(u8) * 80);
+ 121   2                      if(pin_funFP_Select){
+ 122   3                      
+ 123   3                              sprintf(log_Info, " fpU/I: %.02f Hz(电压).\n fpP: %.02f Hz.\n",  pinFP_volXcur,
+ 124   3                                                                                                                                                               pinFP_power);
+ 125   3                              uartObjWIFI_Send_String(log_Info, strlen(log_Info));    
+ 126   3                              
+ 127   3                              memset(log_Info, 0, sizeof(u8) * 80);
+ 128   3                              sprintf(log_Info, " val_U: %.02fV.\n", paramElec_Param.eVoltage);
+ 129   3                              
+ 130   3                              uartObjWIFI_Send_String(log_Info, strlen(log_Info));    
+ 131   3                              
+ 132   3                      }else{
+ 133   3                      
+ 134   3                              sprintf(log_Info, " fpU/I: %.02f Hz(电流).\n fpP: %.02f Hz.\n",  pinFP_volXcur,
+ 135   3                                                                                                                                                               pinFP_power);
+ 136   3                              uartObjWIFI_Send_String(log_Info, strlen(log_Info));
+ 137   3                              
+ 138   3                              memset(log_Info, 0, sizeof(u8) * 80);
+ 139   3                              sprintf(log_Info, " val_I: %.02fmA\n", paramElec_Param.eCurrent);
+ 140   3                              
+ 141   3                              uartObjWIFI_Send_String(log_Info, strlen(log_Info));
+ 142   3                      }                                                                                                                       
+ 143   2                      
+ 144   2                      {
+ 145   3                      
+ 146   3      //                      float xdata elecConsum_temp = 0.0F;
+ 147   3      //                      
+ 148   3      //                      floatVal_save(elec_Consum, 0);
+ 149   3      //                      elecConsum_temp = elecConsum_save_read();
+ 150   3                              
+ 151   3                              memset(log_Info, 0, sizeof(u8) * 80);
+ 152   3                              sprintf(log_Info, " val_P: %.02fW.\n val_elec_Sum: %.08fkWh.\n\n",      paramElec_Param.ePower,
+ 153   3                                                                                                                                                                      elec_Consum);
+ 154   3                              
+ 155   3                              uartObjWIFI_Send_String(log_Info, strlen(log_Info));
+ 156   3                      }
+ 157   2              }
+ 158   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    704    ----
+   CONSTANT SIZE    =    185    ----
+   XDATA SIZE       =     36      80
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      2       2
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+   EDATA SIZE       =   ----    ----
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

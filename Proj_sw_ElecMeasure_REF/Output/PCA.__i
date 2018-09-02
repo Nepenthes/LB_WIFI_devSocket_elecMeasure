@@ -1,0 +1,1 @@
+"std_Lib\PCA.c" OMF2 OPTIMIZE (8,SPEED) BROWSE INCDIR(..\Proj_sw_ElecMeasure;.\Usr;.\Usr_lib;.\std_Lib) DEBUG PRINT(.\Listings\PCA.lst) OBJECT(.\Output\PCA.obj)

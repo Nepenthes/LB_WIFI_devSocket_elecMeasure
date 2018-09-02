@@ -1,0 +1,946 @@
+C51 COMPILER V9.54   DATATRANS                                                             08/24/2018 15:54:59 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE DATATRANS
+OBJECT MODULE PLACED IN .\Output\dataTrans.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE dataTrans\dataTrans.c OMF2 ROM(COMPACT) OPTIMIZE(8,SPEED) BROWSE INCDIR(
+                    -..\Proj_sw_ElecMeasure;.\Usr;.\Usr_lib;.\std_Lib;.\hwDriver;.\dataTrans) DEBUG PRINT(.\Listings\dataTrans.lst) OBJECT(.\
+                    -Output\dataTrans.obj)
+
+line level    source
+
+   1          #include "dataTrans.h"
+   2          
+   3          #include "pars_Method.h"
+   4          #include "dataManage.h"
+   5          #include "wifi_LPT220.h"
+   6          #include "HYM8564.h"
+   7          #include "HW8012.h"
+   8          #include "Relay.h"
+   9          #include "Tips.h"
+  10          
+  11          #include "string.h"
+  12          #include "stdio.h"
+  13          
+  14          #include "USART.h"
+  15          #include "soft_uart.h"
+  16          #include "eeprom.h"
+  17          #include "delay.h"
+  18          
+  19          //*********************MACµØÖ·Ïà¹Ø±äÁ¿ÒýÓÃÇø*********************/
+  20          extern u8 xdata                 MAC_ID[6];
+  21          
+  22          //*********************¶¨Ê±¶¯×÷Ïß³ÌÏà¹Ø±äÁ¿ÒýÓÃÇø****************/
+  23          extern  u8                              swTim_onShoot_FLAG;             //ÆÕÍ¨¿ª¹Ø¶¨Ê±Ò»´ÎÐÔ±êÖ¾¡ª¡ªµÍËÄÎ»±êÊ¶ËÄ¸ö¶¨Ê±Æ÷
+  24          extern  bit                             ifTim_sw_running_FLAG;  //ÆÕÍ¨¿ª¹Ø¶¨Ê±ÔËÐÐ±êÖ¾Î»
+  25          
+  26          extern u8                               ifDelay_sw_running_FLAG;        //ÑÓÊ±¶¯×÷_ÊÇ·ñÔËÐÐ±êÖ¾Î»£¨bit 1ÑÓÊ±¿ª¹ØÔËÐÐÊ¹ÄÜ±êÖ¾£¬bit 0¶¨Ê±¹Ø±Õ
+             -ÔËÐÐÊ¹ÄÜ±êÖ¾£©
+  27          extern u16                              delayCnt_onoff;
+  28          extern u8                               delayPeriod_onoff;
+  29          extern bit                              delayUp_act;
+  30          extern u16                              delayCnt_closeLoop;
+  31          extern u8                               delayPeriod_closeLoop;
+  32          
+  33          //*********************µçÁ¿¼ì²âÏß³ÌÏà¹Ø±äÁ¿ÒýÓÃÇø****************/
+  34          extern  elec_Param      xdata paramElec_Param;  //µç²ÎÊý±äÁ¿
+  35          extern  float           xdata elec_Consum;
+  36          
+  37          //*********************µçÁ¿¼ì²âÏß³ÌÏà¹Ø±äÁ¿ÒýÓÃÇø****************/
+  38          extern  bit                     status_Relay;
+  39          
+  40          /**********************±¾µØÎÄ¼þ±äÁ¿¶¨ÒåÇø************************/
+  41          //´®¿Ú½ÓÊÕ³¬Ê±±êÖ¾
+  42          bit uartRX_toutFLG                                              = 0;
+  43          //´®¿Ú½ÓÊÕ³¬Ê±¼ÆÊý
+  44          bit rxTout_count_EN                                     = 0;
+  45          u8  rxTout_count                                                = 0;
+  46          //´®¿ÚÊý¾Ý»º´æ
+  47          u8      datsRcv_length                                          = 0;
+  48          uartTout_datsRcv xdata datsRcv_ZIGB     = {{0}, 0};
+  49          
+  50          //µ±Ç°½ÓÊÕÉÏÎ»»úÄ£Ê½±êÊ¶
+  51          dataTrans_obj   dataTrans_objWIFI               = DATATRANS_objFLAG_MOBILE;
+  52          
+C51 COMPILER V9.54   DATATRANS                                                             08/24/2018 15:54:59 PAGE 2   
+
+  53          //ÉÏÎ»»úÏÂ´ï¿ª¹ØÃüÁî±êÖ¾
+  54          switch_Status   swStatus_fromUsr                = swStatus_null;
+  55          
+  56          //Êý¾Ý°üÏìÓ¦»Ø¸´³¤¶È¡ª¡ªÄ¬ÈÏ¾ÖÓòÍøÊý¾Ý³¤¶È
+  57          u8 xdata                repeatTX_Len                    = dataTransLength_objMOBILE;
+  58          
+  59          //Éè±¸Ëø±êÖ¾
+  60          bit                             deviceLock_flag                 = false;
+  61          
+  62          //Ô¶¶ËMACID»º´æ
+  63          u8      xdata           Dst_MACID_Temp[6]               = {0};
+  64          
+  65          //ÐÄÌø°üÆæÅ¼±êÖ¾
+  66          bit                     heartBeat_Type                  = 0;    //ÆæÅ¼°ü±êÖ¾£¬ÆæÊý°ü1£¬Å¼Êé°ü0
+  67          //ÐÄÌø°üÖÜÆÚ¼ÆÊýÖµ
+  68          u16     xdata           heartBeat_Cnt                   = 0;
+  69          //ÐÄÌø°ü¼ÆÊýÖÜÆÚ
+  70          const   u32     heartBeat_Period                = 8000;         //ÐÄÌø°üÖÜÆÚÉèÖÃºÁÃëÏµÊýÖµ * 50us£¨¶¨Ê±Æ÷ÄÚ¼ÆÊý£©
+  71          
+  72          /*--------------------------------------------------------------*/
+  73          void uartObjWIFI_Init(void){
+  74   1              
+  75   1              EA = 0;
+  76   1      
+  77   1              PS = 1;
+  78   1              SCON = (SCON & 0x3f) | UART_8bit_BRTx;
+  79   1      
+  80   1      {
+  81   2              u32 j = (MAIN_Fosc / 4) / BAUD_WIFI;    //°´1T¼ÆËã
+  82   2                      j = 65536UL - j;
+  83   2              
+  84   2              TH2 = (u8)(j>>8);
+  85   2              TL2 = (u8)j;
+  86   2      }
+  87   1              AUXR &= ~(1<<4);        //Timer stop
+  88   1              AUXR |= 0x01;           //S1 BRT Use Timer2;
+  89   1              AUXR &= ~(1<<3);        //Timer2 set As Timer
+  90   1              AUXR |=  (1<<2);        //Timer2 set as 1T mode
+  91   1      
+  92   1              IE2  &= ~(1<<2);        //½ûÖ¹ÖÐ¶Ï
+  93   1              AUXR &= ~(1<<3);        //¶¨Ê±
+  94   1              AUXR |=  (1<<4);        //Timer run enable
+  95   1      
+  96   1              ES        = 1;
+  97   1              REN   = 1;
+  98   1              P_SW1 = (P_SW1 & 0x3f) | (UART1_SW_P30_P31 & 0xc0);
+  99   1              
+ 100   1              memset(TX1_Buffer, 0, sizeof(char) * COM_TX1_Lenth);
+ 101   1      
+ 102   1              EA = 1;
+ 103   1              
+ 104   1              PrintString1("i'm UART1 for wifi data translate !!!");
+ 105   1      }
+ 106          
+ 107          /*----------------------------
+ 108          ·¢ËÍ´®¿ÚÊý¾Ý
+ 109          ----------------------------*/
+ 110          void uartObjWIFI_Send_Byte(u8 dat)      //´®¿Ú1
+ 111          {
+ 112   1              TX1_write2buff(dat);
+ 113   1      }
+ 114          
+C51 COMPILER V9.54   DATATRANS                                                             08/24/2018 15:54:59 PAGE 3   
+
+ 115          void uartObjWIFI_Send_String(char *s,unsigned char ucLength){    //´®¿Ú1
+ 116   1              
+ 117   1              uart1_datsSend(s, ucLength);
+ 118   1      }
+ 119          
+ 120          void rxBuff_WIFI_Clr(void){
+ 121   1      
+ 122   1              memset(rxBuff_WIFI, 0xff, sizeof(char) * COM_RX1_Lenth);
+ 123   1              COM1.RX_Cnt = 0;
+ 124   1      }
+ 125          
+ 126          /********************* ×Ô¶¨ÒåÐ£Ñé*****************************/
+ 127          unsigned char frame_Check(unsigned char frame_temp[], u8 check_num){
+ 128   1        
+ 129   1              unsigned char loop              = 0;
+ 130   1              unsigned char val_Check = 0;
+ 131   1              
+ 132   1              for(loop = 0; loop < check_num; loop ++){
+ 133   2              
+ 134   2                      val_Check += frame_temp[loop];
+ 135   2              }
+ 136   1              
+ 137   1              val_Check  = ~val_Check;
+ 138   1              val_Check ^= 0xa7;
+ 139   1              
+ 140   1              return val_Check;
+ 141   1      }
+ 142          
+ 143          /*´ËÊý¾Ý·â×°±ØÐëÔÚÊý¾Ý°ü·¢ËÍÇ°×îºóµ÷ÓÃ£¬×Ô¶¯¸ù¾ÝÉÏ´ÎÊý¾Ý´«ÊäÊ±µÄ¶ÔÏó½øÐÐÊý¾Ý·â×°*///±ÜÃâÐ£Ñé±»ÌáÇ°¶ø³ö´í
+ 144          void dtasTX_loadBasic_AUTO(u8 dats_Tx[45],              //·¢ËÍ°üÊý¾Ý»º´æ»ù±¾ÐÅÏ¢Ìî×°
+ 145                                                             u8 frame_Type,
+ 146                                                             u8 frame_CMD,
+ 147                                                             bit ifSpecial_CMD){  
+ 148   1                                                        
+ 149   1              switch(repeatTX_Len){
+ 150   2              
+ 151   2                      /*·þÎñÆ÷Êý¾Ý°üÌî×°*///45×Ö½Ú
+ 152   2                      case dataTransLength_objSERVER:{
+ 153   3                              
+ 154   3                              u8 xdata datsTemp[32] = {0};
+ 155   3                      
+ 156   3                              dats_Tx[0]      = FRAME_HEAD_SERVER;
+ 157   3                              
+ 158   3                              memcpy(&datsTemp[0], &dats_Tx[1], 32);
+ 159   3                              memcpy(&dats_Tx[13], &datsTemp[0], 32); //Ö¡Í·ºóÀ­¿ª¿Õ³ö12¸ö×Ö½Ú
+ 160   3                              memcpy(&dats_Tx[1],  &Dst_MACID_Temp[0], 6);    //Ô¶¶ËMACIDÌî³ä
+ 161   3                              memcpy(&dats_Tx[8],  &MAC_ID[1], 5);    /*dats_Tx[7] ÔÝÊ±Ìî0*///Ô¶¶ËMACIDÌî³ä
+ 162   3                              
+ 163   3                              dats_Tx[1 + 12] = dataTransLength_objSERVER;
+ 164   3                              dats_Tx[2 + 12] = frame_Type;
+ 165   3                              dats_Tx[3 + 12] = frame_CMD;
+ 166   3                              
+ 167   3                              if(!ifSpecial_CMD)dats_Tx[10 + 12] = SWITCH_TYPE_FP;    //¿ª¹ØÀàÐÍÌî³ä
+ 168   3                              
+ 169   3                              memcpy(&dats_Tx[5 + 12], &MAC_ID[1], 5);        //MACÌî³ä
+ 170   3                                                                        
+ 171   3                              dats_Tx[4 + 12] = frame_Check(&dats_Tx[5 + 12], 28);    
+ 172   3                              
+ 173   3                      }break;
+ 174   2                      
+ 175   2                      /*¾ÖÓòÍøÊý¾Ý°üÌî×°*///33×Ö½Ú
+ 176   2                      case dataTransLength_objMOBILE:{
+C51 COMPILER V9.54   DATATRANS                                                             08/24/2018 15:54:59 PAGE 4   
+
+ 177   3                      
+ 178   3                              dats_Tx[0]      = FRAME_HEAD_MOBILE;
+ 179   3                              
+ 180   3                              dats_Tx[1]      = dataTransLength_objMOBILE;
+ 181   3                              dats_Tx[2]      = frame_Type;
+ 182   3                              dats_Tx[3]      = frame_CMD;
+ 183   3                              
+ 184   3                              if(!ifSpecial_CMD)dats_Tx[10] = SWITCH_TYPE_FP; //¿ª¹ØÀàÐÍÌî³ä
+ 185   3                              
+ 186   3                              memcpy(&dats_Tx[5], &MAC_ID[1], 5);     //MACÌî³ä
+ 187   3                                                                        
+ 188   3                              dats_Tx[4]      = frame_Check(&dats_Tx[5], 28);
+ 189   3                      }break;
+ 190   2                      
+ 191   2                      default:break;
+ 192   2              }       
+ 193   1      }
+ 194                                                             
+ 195          /*´ËÊý¾Ý·â×°±ØÐëÔÚÊý¾Ý°ü·¢ËÍÇ°×îºóµ÷ÓÃ£¬×Ô¶¨Òå¶ÔÏó½øÐÐÊý¾Ý·â×°*///±ÜÃâÐ£Ñé±»ÌáÇ°¶ø³ö´í
+ 196          void dtasTX_loadBasic_CUST(dataTrans_obj obj_custom,    //·¢ËÍ°üÊý¾Ý»º´æ»ù±¾ÐÅÏ¢Ìî×°
+ 197                                                             u8 dats_Tx[45],              
+ 198                                                             u8 frame_Type,
+ 199                                                             u8 frame_CMD,
+ 200                                                             bit ifSpecial_CMD){  
+ 201   1                                                        
+ 202   1              switch(obj_custom){
+ 203   2              
+ 204   2                      /*·þÎñÆ÷Êý¾Ý°üÌî×°*///45×Ö½Ú
+ 205   2                      case DATATRANS_objFLAG_SERVER:{
+ 206   3                              
+ 207   3                              u8 xdata datsTemp[32] = {0};
+ 208   3                      
+ 209   3                              dats_Tx[0]      = FRAME_HEAD_SERVER;
+ 210   3                              
+ 211   3                              memcpy(&datsTemp[0], &dats_Tx[1], 32);
+ 212   3                              memcpy(&dats_Tx[13], &datsTemp[0], 32); //Ö¡Í·ºóÀ­¿ª¿Õ³ö12¸ö×Ö½Ú
+ 213   3                              memcpy(&dats_Tx[1],  &Dst_MACID_Temp[0], 6);    //Ô¶¶ËMACIDÌî³ä
+ 214   3                              memcpy(&dats_Tx[8],  &MAC_ID[1], 5);    /*dats_Tx[7] ÔÝÊ±Ìî0*///Ô¶¶ËMACIDÌî³ä
+ 215   3                              
+ 216   3                              dats_Tx[1 + 12] = dataTransLength_objSERVER;
+ 217   3                              dats_Tx[2 + 12] = frame_Type;
+ 218   3                              dats_Tx[3 + 12] = frame_CMD;
+ 219   3                              
+ 220   3                              if(!ifSpecial_CMD)dats_Tx[10 + 12] = SWITCH_TYPE_FP;    //¿ª¹ØÀàÐÍÌî³ä
+ 221   3                              
+ 222   3                              memcpy(&dats_Tx[5 + 12], &MAC_ID[1], 5);        //MACÌî³ä
+ 223   3                                                                        
+ 224   3                              dats_Tx[4 + 12] = frame_Check(&dats_Tx[5 + 12], 28);    
+ 225   3                              
+ 226   3                      }break;
+ 227   2                      
+ 228   2                      /*¾ÖÓòÍøÊý¾Ý°üÌî×°*///33×Ö½Ú    --³ýÁË45¶¼ÊÇ33Ìî×°
+ 229   2                      case DATATRANS_objFLAG_MOBILE:
+ 230   2                      
+ 231   2                      default:{
+ 232   3                      
+ 233   3                              dats_Tx[0]      = FRAME_HEAD_MOBILE;
+ 234   3                              
+ 235   3                              dats_Tx[1]      = dataTransLength_objMOBILE;
+ 236   3                              dats_Tx[2]      = frame_Type;
+ 237   3                              dats_Tx[3]      = frame_CMD;
+ 238   3                              
+C51 COMPILER V9.54   DATATRANS                                                             08/24/2018 15:54:59 PAGE 5   
+
+ 239   3                              if(!ifSpecial_CMD)dats_Tx[10] = SWITCH_TYPE_FP; //¿ª¹ØÀàÐÍÌî³ä
+ 240   3                              
+ 241   3                              memcpy(&dats_Tx[5], &MAC_ID[1], 5);     //MACÌî³ä
+ 242   3                                                                        
+ 243   3                              dats_Tx[4]      = frame_Check(&dats_Tx[5], 28);
+ 244   3                      }break;
+ 245   2              }       
+ 246   1      }
+ 247          
+ 248          /********************* UART1(WIIF)ÖÐ¶Ïº¯Êý_×Ô¶¨ÒåÖØ¹¹************************/
+ 249          void UART1_Rountine (void) interrupt UART1_VECTOR
+ 250          {
+ 251   1              
+ 252   1              EA = 0;
+ 253   1              
+ 254   1              if(RI)
+ 255   1              {
+ 256   2                      RI = 0;
+ 257   2                      if(COM1.B_RX_OK == 0)
+ 258   2                      {               
+ 259   3                              if(!rxTout_count_EN){
+ 260   4                              
+ 261   4                                      rxTout_count_EN = 1;
+ 262   4                                      rxTout_count    = 0;
+ 263   4                                      datsRcv_length  = 0;
+ 264   4                                      
+ 265   4                                      memset(RX1_Buffer, 0xff, sizeof(char) * COM_RX1_Lenth);
+ 266   4                              }
+ 267   3                              
+ 268   3                              RX1_Buffer[datsRcv_length ++] = SBUF;
+ 269   3                              rxTout_count = 0;
+ 270   3                      }
+ 271   2              }
+ 272   1      
+ 273   1              if(TI)
+ 274   1              {
+ 275   2                      TI = 0;
+ 276   2                      if(COM1.TX_read != COM1.TX_write)
+ 277   2                      {
+ 278   3                              SBUF = TX1_Buffer[COM1.TX_read];
+ 279   3                              if(++COM1.TX_read >= COM_TX1_Lenth)             COM1.TX_read = 0;
+ 280   3                      }
+ 281   2                      else    COM1.B_TX_busy = 0;
+ 282   2              }
+ 283   1              
+ 284   1              EA = 1;
+ 285   1      }
+ 286          
+ 287          /***********Ö÷¶¯Êý¾Ý¼ì²â¼ì²âÁ¢Âí¸üÐÂÐÄÌø°ü**************/
+ 288          void thread_LocalStaus_Release(void){
+ 289   1      
+ 290   1              static bit                              Local_ifTim_sw_running_FLAG                     = 0;
+ 291   1              static bit                              Local_status_Relay                                      = false;
+ 292   1              static bit                              Local_deviceLock_flag                           = false;
+ 293   1              static u8                               Local_ifDelay_sw_running_FLAG           = 0;
+ 294   1              
+ 295   1              if((Local_ifTim_sw_running_FLAG                 != ifTim_sw_running_FLAG) ||
+ 296   1                 (Local_status_Relay                                  != status_Relay) ||
+ 297   1                 (Local_deviceLock_flag                               != deviceLock_flag) ||
+ 298   1                 (Local_ifDelay_sw_running_FLAG               != ifDelay_sw_running_FLAG)
+ 299   1              ){
+ 300   2                      
+C51 COMPILER V9.54   DATATRANS                                                             08/24/2018 15:54:59 PAGE 6   
+
+ 301   2                      heartBeat_Cnt   = heartBeat_Period - 100;       //Á¢¼´¸üÐÂÅ¼ÊýÐÄÌø¡ª¡ª×´Ì¬°ü£¬µÈ100ms£¬·ÀÖ¹Ä£¿éÕ³°ü
+ 302   2                      heartBeat_Type  = 0;    //Å¼Êý°ü
+ 303   2                              
+ 304   2                      Local_ifTim_sw_running_FLAG             = ifTim_sw_running_FLAG;
+ 305   2                      Local_status_Relay                                      = status_Relay;
+ 306   2                      Local_deviceLock_flag                           = deviceLock_flag;
+ 307   2                      Local_ifDelay_sw_running_FLAG           = ifDelay_sw_running_FLAG;
+ 308   2              }
+ 309   1      }
+ 310          
+ 311          /********************* Êý¾Ý´«Êä¼°½âÎö************************/
+ 312          void thread_dataTrans(void){
+ 313   1              
+ 314   1              static u8 timeZone_Hour         = 0;
+ 315   1              static u8 timeZone_Minute       = 0;
+ 316   1              
+ 317   1              unsigned char xdata repeatTX_buff[45]   = {0};
+ 318   1              unsigned char xdata rxBuff_WIFI_temp[45]= {0};
+ 319   1                      
+ 320   1              unsigned char frameLength                               = 0;
+ 321   1      
+ 322   1              bit datsQualified_FLG                                   = 0;    
+ 323   1              bit Parsing_EN                                                  = 0;
+ 324   1              
+ 325   1              u8 xdata heartBeat_Pack[14]                     = {0};  
+ 326   1              
+ 327   1              static u8 elec_Consum_moment                    = 0;    //ÓÃµçÁ¿¶ÔÓ¦Ê±¶Î±êÖ¾£¬µçÁ¿Ö»ÊÇÃ¿Ð¡Ê±µÄÓÃµçÁ¿
+ 328   1              
+ 329   1              /*********************************Êý¾Ý°ü²É¼¯**********************************/
+ 330   1              if(uartRX_toutFLG){ //³¬Ê±¶ÏÖ¡
+ 331   2              
+ 332   2                      uartRX_toutFLG = 0;
+ 333   2                      
+ 334   2                      memset(rxBuff_WIFI_temp, 0, 45 * sizeof(u8));
+ 335   2                      
+ 336   2                      if((datsRcv_ZIGB.rcvDats[0] == FRAME_HEAD_SERVER) && 
+ 337   2                         (datsRcv_ZIGB.rcvDats[13] == dataTransLength_objSERVER) &&
+ 338   2                         (datsRcv_ZIGB.rcvDats[14] == FRAME_TYPE_MtoS_CMD) &&
+ 339   2                         (datsRcv_ZIGB.rcvDatsLen >= dataTransLength_objSERVER)){ /*ÉÏÎ»»ú·¢ÁË¸ö×Ö½Ú*/
+ 340   3                              
+ 341   3                              memcpy(&Dst_MACID_Temp[0], &datsRcv_ZIGB.rcvDats[7], 6);  //Ô¶¶ËMACIDÔÝ´æ       
+ 342   3                              rxBuff_WIFI_temp[0] = datsRcv_ZIGB.rcvDats[0]; //Ö¡Í·¸³Öµ
+ 343   3                              memcpy(&rxBuff_WIFI_temp[1], &datsRcv_ZIGB.rcvDats[13], 32);    //Êý¾Ý¼ÓÔØ£¬Ö¡¶ÔÆë£¬¶ÔÆë³É33×Ö½Ú
+ 344   3                              
+ 345   3                              //ÏìÓ¦»Ø¸´¶ÔÏóÊôÐÔ¸üÐÂ  
+ 346   3                              dataTrans_objWIFI = DATATRANS_objFLAG_SERVER;
+ 347   3                              repeatTX_Len      = dataTransLength_objSERVER;
+ 348   3                              
+ 349   3                              frameLength = dataTransLength_objSERVER;
+ 350   3                              datsQualified_FLG = 1;
+ 351   3                                      
+ 352   3                      }else
+ 353   2                      if((datsRcv_ZIGB.rcvDats[0] == FRAME_HEAD_MOBILE) && 
+ 354   2                         (datsRcv_ZIGB.rcvDats[1] == dataTransLength_objMOBILE) &&
+ 355   2                         (datsRcv_ZIGB.rcvDats[2] == FRAME_TYPE_MtoS_CMD) &&
+ 356   2                         (datsRcv_ZIGB.rcvDatsLen == dataTransLength_objMOBILE)){
+ 357   3                      
+ 358   3                              memcpy(rxBuff_WIFI_temp, datsRcv_ZIGB.rcvDats, dataTransLength_objMOBILE);      //Êý¾Ý¼ÓÔØ
+ 359   3                              
+ 360   3                              //ÏìÓ¦»Ø¸´¶ÔÏóÊôÐÔ¸üÐÂ  
+ 361   3                              dataTrans_objWIFI = DATATRANS_objFLAG_MOBILE;
+ 362   3                              repeatTX_Len      = dataTransLength_objMOBILE;
+C51 COMPILER V9.54   DATATRANS                                                             08/24/2018 15:54:59 PAGE 7   
+
+ 363   3                                      
+ 364   3                              frameLength = dataTransLength_objMOBILE;
+ 365   3                              datsQualified_FLG = 1;
+ 366   3                                      
+ 367   3                      }else
+ 368   2                      if((datsRcv_ZIGB.rcvDats[0] == FRAME_HEAD_HEARTBEAT) && 
+ 369   2                         (datsRcv_ZIGB.rcvDats[1] == dataHeartBeatLength_objSERVER) &&
+ 370   2                         (datsRcv_ZIGB.rcvDatsLen == 14)){ /*·þÎñÆ÷»ØµÄ»¹ÊÇ14×Ö½Ú*///µ«ÊÇÖ¡³¤Îª20£¬ÎÒ·¢µÄ20×Ö½Ú£¬·þÎñÆ÷ÒÀÈ»»Ø1
+             -4×Ö½Ú
+ 371   3                              
+ 372   3                              memcpy(rxBuff_WIFI_temp, datsRcv_ZIGB.rcvDats, 14);     //Êý¾Ý¼ÓÔØ
+ 373   3                              
+ 374   3                              //ÏìÓ¦»Ø¸´¶ÔÏóÊôÐÔ¸üÐÂ  --²»½øÐÐrepeatTX_Len¸üÐÂ£¡£¡£¡
+ 375   3                              dataTrans_objWIFI = HEARTBEAT_objFLAG_SERVER;
+ 376   3                                 
+ 377   3                              frameLength = dataHeartBeatLength_objSERVER;
+ 378   3                              datsQualified_FLG = 1;
+ 379   3                                 
+ 380   3                      }else{
+ 381   3                      
+ 382   3                              dataTrans_objWIFI = dataTrans_obj_NULL;
+ 383   3                              datsQualified_FLG = 0;
+ 384   3                      }
+ 385   2              }
+ 386   1              
+ 387   1              /*********************************Êý¾Ý°üÀàÐÍÕç±ð**********************************/
+ 388   1              if(datsQualified_FLG){
+ 389   2                      
+ 390   2                      bit frameCodeCheck_PASS = 0; //Ð£ÑéÂë¼ì²éÍ¨¹ý±êÖ¾
+ 391   2                      bit frameMacCheck_PASS  = 0; //macµØÖ·´ý¼ì²éÍ¨¹ý±êÖ¾
+ 392   2                      
+ 393   2                      datsQualified_FLG = 0;
+ 394   2              
+ 395   2                      switch(frameLength){
+ 396   3                      
+ 397   3                              case dataTransLength_objSERVER:
+ 398   3                              case dataTransLength_objMOBILE:{
+ 399   4                              
+ 400   4                                      if(rxBuff_WIFI_temp[4] == frame_Check(&rxBuff_WIFI_temp[5], 28))frameCodeCheck_PASS = 1; //Ð£ÑéÂë¼ì²é
+ 401   4                                      if(!memcmp(&rxBuff_WIFI_temp[5], &MAC_ID[1], 5))frameMacCheck_PASS  = 1; //macµØÖ·¼ì²é
+ 402   4                                      
+ 403   4                                      if(rxBuff_WIFI_temp[3] == FRAME_MtoSCMD_cmdCfg_swTim){ //²»ÓÃ½øÐÐÐ£ÑéÂë¼ì²éµÄÖ¸Áî
+ 404   5                                      
+ 405   5                                              frameCodeCheck_PASS = 1;        
+ 406   5                                              
+ 407   5                                      }
+ 408   4                                      if(rxBuff_WIFI_temp[3] == FRAME_MtoSCMD_cmdConfigSearch){ //²»ÓÃ½øÐÐmacµØÖ·¼ì²éµÄÖ¸Áî
+ 409   5                                      
+ 410   5                                              frameMacCheck_PASS = 1; 
+ 411   5                                              
+ 412   5                                      }
+ 413   4                                      
+ 414   4                                      if(frameMacCheck_PASS & frameMacCheck_PASS){ //Ö¸ÁîÑéÖ¤
+ 415   5                                              
+ 416   5                                              Parsing_EN = 1; 
+ 417   5                                              
+ 418   5                                      }else{
+ 419   5                                      
+ 420   5      //                                      if(!frameMacCheck_PASS)uartObjWIFI_Send_String("fuck mac", 8);
+ 421   5      //                                      if(!frameMacCheck_PASS)uartObjWIFI_Send_String("fuck code", 9);rxBuff_WIFI_temp
+ 422   5      //                                      uartObjWIFI_Send_String(rxBuff_WIFI_temp, 33);
+ 423   5                                      }
+C51 COMPILER V9.54   DATATRANS                                                             08/24/2018 15:54:59 PAGE 8   
+
+ 424   4                                      
+ 425   4                              }break;
+ 426   3                              
+ 427   3                              case dataHeartBeatLength_objSERVER:{
+ 428   4                              
+ 429   4                                      if(!memcmp(&rxBuff_WIFI_temp[3], &MAC_ID[1], 5)){       //MACµØÖ·±¾µØ±È¶Ô
+ 430   5                                              
+ 431   5                                              Parsing_EN = 1; 
+ 432   5                                      }
+ 433   4                                      
+ 434   4                              }break;
+ 435   3                              
+ 436   3                              default:{
+ 437   4                      
+ 438   4                                      Parsing_EN = 0; 
+ 439   4                                      
+ 440   4                              }break;
+ 441   3                      }
+ 442   2              }
+ 443   1              
+ 444   1              /*********************************Êý¾Ý°ü¿ªÊ¼½âÎöÏìÓ¦**********************************/ 
+ 445   1              if(Parsing_EN){ //¿ªÊ¼½âÎö
+ 446   2                      
+ 447   2                      Parsing_EN = 0;
+ 448   2                      
+ 449   2                      switch(dataTrans_objWIFI){
+ 450   3                      
+ 451   3                              //·þÎñÆ÷
+ 452   3                              case DATATRANS_objFLAG_SERVER:
+ 453   3                              //¾ÖÓòÍø
+ 454   3                              case DATATRANS_objFLAG_MOBILE:{
+ 455   4                                      
+ 456   4                                              bit specialCmd_FLAG = 0;        /*ÌØÊâÊý¾Ý·â×°±êÖ¾*///Êý¾Ý1ÊÇ·ñÕ¼ÓÃ£¨Ô­Îª¿ª¹ØÀàÐÍ£©
+ 457   4                                              bit respond_FLAG        = 1;    /*ÊÇ·ñÏàÓ¦»Ø¸´±êÖ¾*///Êý¾Ý½ÓÊÕºóÊÇ·ñÖ÷¶¯»Ø¸´ÏìÓ¦
+ 458   4                                      
+ 459   4                                              u8 cmdParing_Temp = rxBuff_WIFI_temp[3];
+ 460   4                                      
+ 461   4                                              memset(repeatTX_buff, 0, sizeof(u8) * 45);
+ 462   4      
+ 463   4                                              switch(cmdParing_Temp){         //ÃüÁî½âÎö¼°Ê¶±ð
+ 464   5      
+ 465   5                                                      /*¿ØÖÆÖ¸Áî*/
+ 466   5                                                      case FRAME_MtoSCMD_cmdControl:{         
+ 467   6                                                              
+ 468   6                                                              switch(rxBuff_WIFI_temp[11]){
+ 469   7                                                              
+ 470   7                                                                      case 0x00:{             //¿ª¹Ø_¿ª
+ 471   8                                                                      
+ 472   8                                                                              swStatus_fromUsr = swStatus_off;
+ 473   8                                                                              
+ 474   8                                                                      }break;
+ 475   7                                                                              
+ 476   7                                                                      case 0x01:{             //¿ª¹Ø_¹Ø
+ 477   8                                                                      
+ 478   8                                                                              swStatus_fromUsr = swStatus_on;
+ 479   8      
+ 480   8                                                                      }break;
+ 481   7                                                                      
+ 482   7                                                                      default:break;
+ 483   7                                                              }
+ 484   6                                                              
+ 485   6                                                              repeatTX_buff[11]       = rxBuff_WIFI_temp[11];         //¿ª¹Ø×´Ì¬¸üÐÂÌî³ä
+C51 COMPILER V9.54   DATATRANS                                                             08/24/2018 15:54:59 PAGE 9   
+
+ 486   6                                                              
+ 487   6                                                      }break;
+ 488   5      
+ 489   5                                                      /*ÅäÖÃËÑË÷Ö¸Áî*/
+ 490   5                                                      case FRAME_MtoSCMD_cmdConfigSearch:{    
+ 491   6                                                              
+ 492   6                                                              u8 deviceLock_IF = 0;
+ 493   6                                                                                              
+ 494   6                                                              EEPROM_read_n(EEPROM_ADDR_deviceLockFLAG, &deviceLock_IF, 1);
+ 495   6                                                              
+ 496   6                                                              //ÉÏËø¼ì²â
+ 497   6                                                              if(!deviceLock_IF){     
+ 498   7                                                                      
+ 499   7                                                                      u8 xdata serverIP_temp[4] = {0};
+ 500   7                                                                      memcpy(&serverIP_temp[0], &rxBuff_WIFI_temp[6], 4);
+ 501   7                                                              
+ 502   7                                                                      //·þÎñÆ÷µØÖ·Í¬²½
+ 503   7                                                                      if(WIFI_serverUDP_CHG(serverIP_temp)){
+ 504   8                                                                              
+ 505   8      
+ 506   8                                                                      }else{
+ 507   8                                                                      
+ 508   8                                                                      }
+ 509   7      
+ 510   7                                                                      //Ê±¼äÐÅÏ¢Í¬²½
+ 511   7                                                                      timeZone_Hour   = rxBuff_WIFI_temp[12];         //Ê±Çø¸üÐÂ
+ 512   7                                                                      timeZone_Minute = rxBuff_WIFI_temp[13];
+ 513   7                                                                      coverEEPROM_write_n(EEPROM_ADDR_timeZone_H, &timeZone_Hour, 1);
+ 514   7                                                                      coverEEPROM_write_n(EEPROM_ADDR_timeZone_M, &timeZone_Minute, 1);
+ 515   7                                                                      
+ 516   7                                                              }else{
+ 517   7                                                              
+ 518   7                                                                      respond_FLAG = 0;
+ 519   7                                                              }
+ 520   6                                                              
+ 521   6                                                      }break;
+ 522   5                                                      
+ 523   5                                                      /*²éÑ¯µÇÂ¼Ö¸Áî*/
+ 524   5                                                      case FRAME_MtoSCMD_cmdQuery:{   
+ 525   6                                                              
+ 526   6                                                              u8 deviceLock_IF = 0;
+ 527   6                                                              
+ 528   6                                                              EEPROM_read_n(EEPROM_ADDR_deviceLockFLAG, &deviceLock_IF, 1);
+ 529   6      
+ 530   6                                                              if(deviceLock_IF){
+ 531   7                                                                      
+ 532   7                                                                      
+ 533   7                                                              }else{
+ 534   7                                                              
+ 535   7      
+ 536   7                                                              }
+ 537   6                                                              
+ 538   6                                                      }break;
+ 539   5                                                      
+ 540   5                                                      case FRAME_MtoSCMD_cmdCfg_swTim:{       /*ÆÕÍ¨¿ª¹Ø¶¨Ê±ÅäÖÃÖ¸Áî*/
+ 541   6                                                              
+ 542   6                                                              u8 loop = 0;
+ 543   6                                                              
+ 544   6                                                              //Ð£Ê±
+ 545   6                                                              stt_Time datsTime_temp = {0};
+ 546   6                                                              
+ 547   6                                                              datsTime_temp.time_Year         = rxBuff_WIFI_temp[26];
+C51 COMPILER V9.54   DATATRANS                                                             08/24/2018 15:54:59 PAGE 10  
+
+ 548   6                                                              datsTime_temp.time_Month        = rxBuff_WIFI_temp[27];
+ 549   6                                                              datsTime_temp.time_Day          = rxBuff_WIFI_temp[28];
+ 550   6                                                              datsTime_temp.time_Hour         = rxBuff_WIFI_temp[29];
+ 551   6                                                              elec_Consum_moment                      = datsTime_temp.time_Hour;
+ 552   6                                                              datsTime_temp.time_Minute       = rxBuff_WIFI_temp[30];
+ 553   6                                                              datsTime_temp.time_Week         = rxBuff_WIFI_temp[31];
+ 554   6                                                              
+ 555   6                                                              timeSet(datsTime_temp);
+ 556   6                                                              
+ 557   6                                                              //¶¨Ê±Êý¾Ý´¦Àí¼°¸üÐÂ,·ÖÀà´¦Àí
+ 558   6                                                              switch(rxBuff_WIFI_temp[13]){
+ 559   7                                                              
+ 560   7                                                                      case cmdConfigTim_normalSwConfig:{      /*ÆÕÍ¨¶¨Ê±*/
+ 561   8                                                                              
+ 562   8                                                                              for(loop = 0; loop < 4; loop ++){
+ 563   9                                                                              
+ 564   9                                                                                      if(rxBuff_WIFI_temp[14 + loop * 3] == 0x80){    /*Ò»´ÎÐÔ¶¨Ê±ÅÐ¶Ï*///ÖÜÕ¼Î»Îª¿Õ£¬¶ø¶¨Ê±Æ÷±»´ò¿ª£¬ËµÃ
+             -÷ÊÇÒ»´ÎÐÔ
+ 565  10                                                                                      
+ 566  10                                                                                              swTim_onShoot_FLAG                              |= (1 << loop); //Ò»´ÎÐÔ¶¨Ê±±êÖ¾¿ªÆô
+ 567  10                                                                                              rxBuff_WIFI_temp[14 + loop * 3] |= (1 << (rxBuff_WIFI_temp[31] - 1)); //Ç¿ÐÐ½øÐÐµ±Ç°ÖÜÕ¼Î»£¬µ±´
+             -ÎÖ´ÐÐÍê±ÏºóÇå³ý
+ 568  10                                                                                      }
+ 569   9                                                                              }
+ 570   8                                                                              coverEEPROM_write_n(EEPROM_ADDR_swTimeTab, &rxBuff_WIFI_temp[14], 12);  //¶¨Ê±±í
+ 571   8      
+ 572   8                                                                      }break;
+ 573   7                                                                      
+ 574   7                                                                      case cmdConfigTim_onoffDelaySwConfig:{  /*¿ª¹ØÑÓÊ±*/
+ 575   8                                                                      
+ 576   8                                                                              if(rxBuff_WIFI_temp[14]){
+ 577   9                                                                              
+ 578   9                                                                                      ifDelay_sw_running_FLAG |= (1 << 1);
+ 579   9                                                                                      delayPeriod_onoff               = rxBuff_WIFI_temp[14];
+ 580   9                                                                                      
+ 581   9      //                                                                              if(rxBuff_WIFI_temp[15] == 2)delayUp_act = 1; //2ÎªÑÓÊ±¿ª£¬1ÎªÑÓÊ±¹Ø
+ 582   9      //                                                                              else delayUp_act = 0;
+ 583   9                                                                                      
+ 584   9                                                                                      delayUp_act                             = rxBuff_WIFI_temp[15];
+ 585   9                                                                                      
+ 586   9                                                                                      delayCnt_onoff                  = 0;
+ 587   9                                                                                      
+ 588   9                                                                              }else{
+ 589   9                                                                              
+ 590   9                                                                                      ifDelay_sw_running_FLAG &= ~(1 << 1); //ÎÞÐèµôµç±£´æ
+ 591   9                                                                                      delayPeriod_onoff               = 0;
+ 592   9                                                                                      delayCnt_onoff                  = 0;
+ 593   9                                                                              }
+ 594   8                                                                              
+ 595   8                                                                      }break;
+ 596   7                                                                      
+ 597   7                                                                      case cmdConfigTim_closeLoopSwConfig:{   /*×Ô¶¯Ñ­»·¹Ø±Õ*/
+ 598   8                                                                      
+ 599   8                                                                              if(rxBuff_WIFI_temp[14]){
+ 600   9                                                                              
+ 601   9                                                                                      ifDelay_sw_running_FLAG |= (1 << 0);
+ 602   9                                                                                      delayPeriod_closeLoop   = rxBuff_WIFI_temp[14];
+ 603   9                                                                                      delayCnt_closeLoop              = 0;
+ 604   9                                                                              }else{
+ 605   9                                                                              
+ 606   9                                                                                      ifDelay_sw_running_FLAG &= ~(1 << 0); //ÐèÒªµôµç±£´æ
+ 607   9                                                                                      delayPeriod_closeLoop   = 0;
+C51 COMPILER V9.54   DATATRANS                                                             08/24/2018 15:54:59 PAGE 11  
+
+ 608   9                                                                                      delayCnt_closeLoop              = 0;
+ 609   9                                                                              }
+ 610   8                                                                              
+ 611   8                                                                              coverEEPROM_write_n(EEPROM_ADDR_swDelayFLAG, &ifDelay_sw_running_FLAG, 1);
+ 612   8                                                                              coverEEPROM_write_n(EEPROM_ADDR_periodCloseLoop, &delayPeriod_closeLoop, 1);
+ 613   8                                                                              
+ 614   8                                                                      }break;                                                         
+ 615   7                                                                      
+ 616   7                                                                      default:break;
+ 617   7                                                              }
+ 618   6                                                              
+ 619   6                                                              //Êý¾ÝÏìÓ¦¼°»Ø¸´
+ 620   6                                                              repeatTX_buff[12]       = rxBuff_WIFI_temp[12];
+ 621   6                                                              repeatTX_buff[13]       = rxBuff_WIFI_temp[13];
+ 622   6      
+ 623   6                                                      }break;
+ 624   5                                                      
+ 625   5                                                      /*ÅäÖÃ»¥¿ØÖ¸Áî*/
+ 626   5                                                      case FRAME_MtoSCMD_cmdInterface:{       
+ 627   6                                                      
+ 628   6                                                              
+ 629   6                                                              
+ 630   6                                                      }break;
+ 631   5                                                      
+ 632   5                                                      /*¿ª¹Ø¸´Î»Ö¸Áî*/
+ 633   5                                                      case FRAME_MtoSCMD_cmdReset:{           
+ 634   6                                                      
+ 635   6                                                              
+ 636   6                                                              
+ 637   6                                                      }break;
+ 638   5                                                      
+ 639   5                                                      /*Éè±¸Ëø¶¨Ö¸Áî¡ª¡ªÉè±¸ÐÅÏ¢ÏìÓ¦Ê§ÄÜ*/
+ 640   5                                                      case FRAME_MtoSCMD_cmdLockON:{          
+ 641   6                                                              
+ 642   6                                                              //Êý¾Ý´¦Àí¼°¶¯×÷ÏìÓ¦
+ 643   6                                                              {
+ 644   7                                                                      u8 deviceLock_IF = 1;
+ 645   7                                                                      
+ 646   7                                                                      deviceLock_flag  = 1;
+ 647   7                                                                      coverEEPROM_write_n(EEPROM_ADDR_deviceLockFLAG, &deviceLock_IF, 1);
+ 648   7                                                              }                                                       
+ 649   6                                                      }break;
+ 650   5                                                      
+ 651   5                                                      /*Éè±¸½âËøÖ¸Áî¡ª¡ªÉè±¸ÐÅÏ¢ÏìÓ¦Ê¹ÄÜ*/
+ 652   5                                                      case FRAME_MtoSCMD_cmdLockOFF:{         
+ 653   6                                                              
+ 654   6                                                              //Êý¾Ý´¦Àí¼°¶¯×÷ÏìÓ¦
+ 655   6                                                              {
+ 656   7                                                                      u8 deviceLock_IF = 0;
+ 657   7                                                                      
+ 658   7                                                                      deviceLock_flag  = 0;
+ 659   7                                                                      coverEEPROM_write_n(EEPROM_ADDR_deviceLockFLAG, &deviceLock_IF, 1);
+ 660   7                                                              }                                               
+ 661   6                                                      }break;
+ 662   5                                                      
+ 663   5                                                      /*ÆÕÍ¨¿ª¹Ø¶¨Ê±ÅäÖÃ²éÑ¯Ö¸Áî*/
+ 664   5                                                      case FRAME_MtoSCMD_cmdswTimQuery:{      
+ 665   6                                                              
+ 666   6                                                              repeatTX_buff[12]       = rxBuff_WIFI_temp[12];
+ 667   6                                                              repeatTX_buff[13]       = rxBuff_WIFI_temp[13];
+ 668   6                                                              
+ 669   6                                                              //·ÖÀà»Ø¸´
+C51 COMPILER V9.54   DATATRANS                                                             08/24/2018 15:54:59 PAGE 12  
+
+ 670   6                                                              switch(rxBuff_WIFI_temp[13]){
+ 671   7                                                              
+ 672   7                                                                      case 0: /*ÉÏÎ»»úÔÚ¶¨Ê±µÄÊ±ºò¸ø0£¬´ýÐ­ÉÌ*/
+ 673   7                                                                      case cmdConfigTim_normalSwConfig:{
+ 674   8                                                                      
+ 675   8                                                                              u8 loop = 0;
+ 676   8                                                                      
+ 677   8                                                                              //Êý¾ÝÏìÓ¦¼°»Ø¸´
+ 678   8                                                                              EEPROM_read_n(EEPROM_ADDR_swTimeTab, &repeatTX_buff[14], 12);   //¶¨Ê±±í»Ø¸´Ìî×°
+ 679   8                                                                              
+ 680   8                                                                              //»Ø¸´Êý¾Ý¶þ´Î´¦Àí£¨Õë¶ÔÒ»´ÎÐÔ¶¨Ê±Êý¾Ý£©
+ 681   8                                                                              for(loop = 0; loop < 4; loop ++){
+ 682   9                                                                              
+ 683   9                                                                                      if(swTim_onShoot_FLAG & (1 << loop)){
+ 684  10                                                                                              
+ 685  10                                                                                              repeatTX_buff[14 + loop * 3] &= 0x80;
+ 686  10                                                                                      }
+ 687   9                                                                              }
+ 688   8                                                                              
+ 689   8                                                                              specialCmd_FLAG = 1;
+ 690   8                                                                              
+ 691   8                                                                      }break;
+ 692   7                                                                      
+ 693   7                                                                      case cmdConfigTim_onoffDelaySwConfig:{
+ 694   8                                                                      
+ 695   8                                                                              if(!delayCnt_onoff)repeatTX_buff[14] = 0;
+ 696   8                                                                              else repeatTX_buff[14] = delayPeriod_onoff - (u8)(delayCnt_onoff / 60);
+ 697   8                                                                              repeatTX_buff[15] = delayUp_act;
+ 698   8      //                                                                      if(delayUp_act)repeatTX_buff[15] = 2;
+ 699   8      //                                                                      else repeatTX_buff[15] = 1;
+ 700   8                                                                              
+ 701   8                                                                      }break;
+ 702   7                                                                      
+ 703   7                                                                      case cmdConfigTim_closeLoopSwConfig:{
+ 704   8                                                                      
+ 705   8                                                                              repeatTX_buff[14] = delayPeriod_closeLoop;
+ 706   8                                                                              
+ 707   8                                                                      }break;
+ 708   7                                                                      
+ 709   7                                                                      default:break;
+ 710   7                                                              }
+ 711   6                                                      }break;
+ 712   5                                                      
+ 713   5                                                      /*APÄ£Ê½ÅäÖÃÖ¸Áî*/
+ 714   5                                                      case FRAME_MtoSCMD_cmdConfigAP:{        
+ 715   6                                                      
+ 716   6                                                              //´ËÖ¸Áî²»³£ÓÃ£¬ ±£Áô
+ 717   6                                                      }break;
+ 718   5                                                      
+ 719   5                                                      /*ÌáÊ¾ÒôÊ¹ÄÜÖ¸Áî*/
+ 720   5                                                      case FRAME_MtoSCMD_cmdBeepsON:{         
+ 721   6                                                      
+ 722   6                                                              
+ 723   6                                                      }break;
+ 724   5                                                      
+ 725   5                                                      /*ÌáÊ¾ÒôÊ§ÄÜÖ¸Áî*/
+ 726   5                                                      case FRAME_MtoSCMD_cmdBeepsOFF:{        
+ 727   6                                                      
+ 728   6                                                              
+ 729   6                                                      }break;
+ 730   5                                                      
+ 731   5                                                      /*»Ö¸´³ö³§±¾µØÊÇ·ñÖ§³Ö²éÑ¯*/
+C51 COMPILER V9.54   DATATRANS                                                             08/24/2018 15:54:59 PAGE 13  
+
+ 732   5                                                      case FRAME_MtoSCMD_cmdftRecoverRQ:{     
+ 733   6                                                      
+ 734   6      
+ 735   6                                                      }
+ 736   5                                                      
+ 737   5                                                      /*»Ö¸´³ö³§ÉèÖÃÖ¸Áî*/
+ 738   5                                                      case FRAME_MtoSCMD_cmdRecoverFactory:{  
+ 739   6                                                      
+ 740   6      
+ 741   6                                                      }break;
+ 742   5                                                      
+ 743   5                                                      default:break;
+ 744   5                                              }
+ 745   4                                              
+ 746   4                                              if(respond_FLAG){       //Ö÷¶¯ÏìÓ¦»Ø¸´Ö´ÐÐ
+ 747   5                                              
+ 748   5                                                      dtasTX_loadBasic_AUTO( repeatTX_buff,                           /*·¢ËÍÇ°×îºó×°ÔØ*///·¢ËÍ°ü»ù±¾ÐÅÏ¢Ìî³ä
+ 749   5                                                                                                 FRAME_TYPE_StoM_RCVsuccess,
+ 750   5                                                                                                 cmdParing_Temp,
+ 751   5                                                                                                 specialCmd_FLAG
+ 752   5                                                                                               );
+ 753   5                                                      uartObjWIFI_Send_String(repeatTX_buff, repeatTX_Len);//Êý¾Ý½ÓÊÕ»Ø¸´ÏìÓ¦ 
+ 754   5                                              }
+ 755   4                                              
+ 756   4      //                                      if((HEARTBEAT_objFLAG_SERVER != dataTrans_objWIFI) &&
+ 757   4      //                                         ((cmdParing_Temp != FRAME_MtoSCMD_cmdConfigSearch) && (DATATRANS_objFLAG_MOBILE == dataTrans_obj
+             -WIFI)) \
+*** WARNING C329 IN LINE 757 OF dataTrans\dataTrans.c: single-line comment contains line-continuation
+ 758   4      //                                      )beeps(2);      //ÌáÊ¾Òô,ÐÄÌø°ü²»Ïì,ËÑË÷ÅäÖÃÊ±²»Ïì
+ 759   4                                              
+ 760   4                              }break;
+ 761   3                              
+ 762   3                              //ÐÄÌø°üÊý¾Ý½âÎö
+ 763   3                              case HEARTBEAT_objFLAG_SERVER:{
+ 764   4                              
+ 765   4                                      switch(rxBuff_WIFI_temp[2]){
+ 766   5                                      
+ 767   5                                              case FRAME_HEARTBEAT_cmdEven:{
+ 768   6                                              
+ 769   6                                                      
+ 770   6                                              }break;
+ 771   5                                                      
+ 772   5                                              case FRAME_HEARTBEAT_cmdOdd:{           //ÆæÊýÐÄÌøÊ±¼äÐ£×¼
+ 773   6                                              
+ 774   6                                                      stt_Time datsTime_temp = {0};
+ 775   6                                                      
+ 776   6      //                                              u8 Y    = rxBuff_WIFI_temp[8];
+ 777   6      //                                              u8 W    = rxBuff_WIFI_temp[8];
+ 778   6                                                      u8 M    = rxBuff_WIFI_temp[9];
+ 779   6                                                      u8 D    = rxBuff_WIFI_temp[10];
+ 780   6      //                                              u8 W    = Y + (Y / 4) + 5 - 40 + (26 * (M + 1) / 10) + D - 1;   //²ÌÀÕ¹«Ê½
+ 781   6      //                                                 W   %= 7; 
+ 782   6      //                                              
+ 783   6      //                                              W?(datsTime_temp.time_Week = W):(datsTime_temp.time_Week = 7);
+ 784   6                                                      
+ 785   6                                                      datsTime_temp.time_Year         = 18;
+ 786   6                                                      datsTime_temp.time_Month        = M;
+ 787   6                                                      datsTime_temp.time_Day          = D;
+ 788   6                                                      datsTime_temp.time_Week         = rxBuff_WIFI_temp[8];
+ 789   6                                                      datsTime_temp.time_Hour         = rxBuff_WIFI_temp[11];
+ 790   6                                                      datsTime_temp.time_Minute       = rxBuff_WIFI_temp[12];
+ 791   6                                                      datsTime_temp.time_Second       = rxBuff_WIFI_temp[13];                                         
+C51 COMPILER V9.54   DATATRANS                                                             08/24/2018 15:54:59 PAGE 14  
+
+ 792   6                                                      
+ 793   6                                                      timeSet(datsTime_temp);
+ 794   6                                                      
+ 795   6                                              }break;
+ 796   5                                              
+ 797   5                                              default:break;
+ 798   5                                      }
+ 799   4                                      
+ 800   4                              }break;
+ 801   3                                      
+ 802   3                              default:break;
+ 803   3                      }
+ 804   2              }
+ 805   1                      
+ 806   1              /*************************************ÐÄÌø°üÒµÎñ´úÂë**********************************************/
+ 807   1              if(heartBeat_Cnt < heartBeat_Period);
+ 808   1              else{
+ 809   2              
+ 810   2                      heartBeat_Cnt = 0;
+ 811   2                      
+ 812   2                      memset(&heartBeat_Pack[0], 0, sizeof(u8) * dataHeartBeatLength_objSERVER);
+ 813   2                      
+ 814   2                      heartBeat_Pack[0]       = FRAME_HEAD_HEARTBEAT;
+ 815   2                      heartBeat_Pack[1]       = dataHeartBeatLength_objSERVER;
+ 816   2      
+ 817   2                      if(heartBeat_Type){     //ÆæÊýÐÄÌø
+ 818   3                      
+ 819   3                              heartBeat_Type = !heartBeat_Type;
+ 820   3                              
+ 821   3                              heartBeat_Pack[2]       = FRAME_HEARTBEAT_cmdOdd;
+ 822   3                              memcpy(&heartBeat_Pack[3], &MAC_ID[1], 5);
+ 823   3                              
+ 824   3                              EEPROM_read_n(EEPROM_ADDR_timeZone_H, &timeZone_Hour, 1);
+ 825   3                              EEPROM_read_n(EEPROM_ADDR_timeZone_M, &timeZone_Minute, 1);
+ 826   3                              heartBeat_Pack[8] = timeZone_Hour;
+ 827   3                              heartBeat_Pack[9] = timeZone_Minute;
+ 828   3                              
+ 829   3      //                      //²âÊÔ´úÂë¶Î
+ 830   3      //                      {
+ 831   3      //                              static u8 test_timeZone_Hour = 0;
+ 832   3      //                              
+ 833   3      //                              if(test_timeZone_Hour < 24)test_timeZone_Hour ++;
+ 834   3      //                              else{
+ 835   3      //                              
+ 836   3      //                                      test_timeZone_Hour = 0;
+ 837   3      //                              }
+ 838   3      //                              
+ 839   3      //                              heartBeat_Pack[8] = test_timeZone_Hour;
+ 840   3      //                              heartBeat_Pack[9] = 0;
+ 841   3      //                      }
+ 842   3                              
+ 843   3                              {
+ 844   4                              u16 integer_prt = (u16)elec_Consum & 0x00FF;    //µçÁ¿ÕûÊý²¿·Ö
+ 845   4                              u16 decimal_prt = (u16)((elec_Consum - (float)integer_prt) * 10000.0F); //µçÁ¿Ð¡Êý²¿·ÖÇ¿×ªÎªÕûÊýÀàÐÍ
+ 846   4                              
+ 847   4                              heartBeat_Pack[10]      = (u8)((integer_prt & 0x00FF) >> 0);    //ÕûÊý²¿·ÖÌî×°
+ 848   4                              heartBeat_Pack[11]      = (u8)((decimal_prt & 0xFF00) >> 8);    //Ð¡Êý²¿·ÖÌî×°
+ 849   4                              heartBeat_Pack[12]      = (u8)((decimal_prt & 0x00FF) >> 0);    //Ð¡Êý²¿·ÖÌî×°
+ 850   4                              }
+ 851   3                              
+ 852   3                              {
+ 853   4                              u16 integer_prt = (u16)paramElec_Param.ePower & 0xFFFF; //¹¦ÂÊÕûÊý²¿·Ö
+C51 COMPILER V9.54   DATATRANS                                                             08/24/2018 15:54:59 PAGE 15  
+
+ 854   4                              u16 decimal_prt = (u16)((paramElec_Param.ePower - (float)integer_prt) * 10000.0F);      //¹¦ÂÊÐ¡Êý²¿·ÖÇ¿×ªÎª
+             -ÕûÊýÀàÐÍ
+ 855   4                              
+ 856   4                              heartBeat_Pack[13]      = (u8)((integer_prt & 0xFF00) >> 8);    //ÕûÊý²¿·ÖÌî×°
+ 857   4                              heartBeat_Pack[14]      = (u8)((integer_prt & 0x00FF) >> 0);    //ÕûÊý²¿·ÖÌî×°
+ 858   4                              heartBeat_Pack[15]      = (u8)((decimal_prt & 0xFF00) >> 8);    //Ð¡Êý²¿·ÖÌî×°
+ 859   4                              heartBeat_Pack[16]      = (u8)((decimal_prt & 0x00FF) >> 0);    //Ð¡Êý²¿·ÖÌî×°
+ 860   4                              }
+ 861   3                              
+ 862   3                              heartBeat_Pack[17]      = elec_Consum_moment;   //¶ÔÓ¦Ê±¶Î±êÖ¾Ìî×°
+ 863   3                              
+ 864   3                      }else{  //Å¼ÊýÐÄÌø
+ 865   3                      
+ 866   3                              heartBeat_Type = !heartBeat_Type;
+ 867   3                              
+ 868   3                              heartBeat_Pack[2]       = FRAME_HEARTBEAT_cmdEven;
+ 869   3                              memcpy(&heartBeat_Pack[3], &MAC_ID[1], 5);
+ 870   3                              
+ 871   3                              heartBeat_Pack[8]       = deviceLock_flag;
+ 872   3                              heartBeat_Pack[9]       = ifTim_sw_running_FLAG;
+ 873   3                              heartBeat_Pack[10]      = status_Relay;
+ 874   3                              heartBeat_Pack[11]      = (ifDelay_sw_running_FLAG & 0x01) >> 0; //ÂÌÉ«Ä£Ê½
+ 875   3                      }
+ 876   2                      
+ 877   2                      heartBeat_Pack[18]      = SWITCH_TYPE_FP;
+ 878   2                      heartBeat_Pack[19]      = FRAME_TAIL_HEARTBEAT;
+ 879   2      
+ 880   2                      uartObjWIFI_Send_String(heartBeat_Pack, dataHeartBeatLength_objSERVER);
+ 881   2              }
+ 882   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   2825    ----
+   CONSTANT SIZE    =    224    ----
+   XDATA SIZE       =    138     172
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     12      28
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      7       6
+   EDATA SIZE       =   ----    ----
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)

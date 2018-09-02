@@ -1,0 +1,281 @@
+C51 COMPILER V9.54   TIPS                                                                  08/24/2018 15:54:59 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE TIPS
+OBJECT MODULE PLACED IN .\Output\Tips.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE Usr\Tips.c OMF2 ROM(COMPACT) OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Proj_sw_
+                    -ElecMeasure;.\Usr;.\Usr_lib;.\std_Lib;.\hwDriver;.\dataTrans) DEBUG PRINT(.\Listings\Tips.lst) OBJECT(.\Output\Tips.obj)
+
+line level    source
+
+   1          #include "Tips.h"
+   2          
+   3          #include "GPIO.h"
+   4          #include "delay.h"
+   5          
+   6          enum_segTips dev_segTips = segMode_init; //◊¥Ã¨ª˙◊¥Ã¨£∫seg◊¥Ã¨÷∏ æ
+   7          enum_ledTips dev_ledTips = ledMode_init;  //◊¥Ã¨ª˙◊¥Ã¨£∫led◊¥Ã¨÷∏ æ
+   8          enum_beeps   dev_beeps   = beepsMode_null; //◊¥Ã¨ª˙◊¥Ã¨£∫∑‰√˘∆˜◊¥Ã¨÷∏ æ
+   9          bit tipsBeep_INTFLG = 0; //∑‰√˘∆˜◊¥Ã¨÷–∂œ«–ªª±Í÷æ£®µ±«∞◊¥Ã¨’˝‘⁄Ω¯–– ±±ª÷–∂œ«–ªª£¨‘Ÿ¥ŒªÿµΩµ±«∞◊¥Ã¨ ± π◊¥Ã¨º
+             -∞ƒ⁄≤ø±‰¡øªÿµΩ≥ı º÷µ£©
+  10          bit tipsSeg_INTFLG = 0; // ˝¬Îπ‹◊¥Ã¨÷–∂œ«–ªª±Í÷æ £®µ±«∞◊¥Ã¨’˝‘⁄Ω¯–– ±±ª÷–∂œ«–ªª£¨‘Ÿ¥ŒªÿµΩµ±«∞◊¥Ã¨ ± π◊¥Ã¨º
+             -∞ƒ⁄≤ø±‰¡øªÿµΩ≥ı º÷µ£©
+  11          
+  12          #define spect_size 15
+  13          u8 code spect_len[spect_size]   = {2,2,2,4,4,4,7,7,7,6,6,3,3};
+  14          u8 code spect[spect_size][8]    = {
+  15          
+  16                  {3,1},//0
+  17                  {7,2},//1
+  18                  {3,3},//2
+  19                  {1,2,4,5},//3
+  20                  {5,4,3,2},//4
+  21                  {1,2,6,7},//5
+  22                  {5,5,6,4,3,1,5},//6
+  23                  {7,7,5,6,1,2,4},//7
+  24                  {6,6,2,3,1,4,7},//8
+  25                  {1,2,5,6,3,4},//9
+  26                  {5,4,3,3,4,3},//10
+  27                  {5,2,2},//11
+  28                  {7,4,4},//12
+  29          };
+  30          
+  31          void pinLed_Init(void){
+  32   1      
+  33   1              //ø™¬©
+  34   1              P2M1    |= 0x20;
+  35   1              P2M0    |= 0x20;
+  36   1              
+  37   1              //Õ∆ÕÏ
+  38   1              P2M1    &= ~(0xAF);
+  39   1              P2M0    |=   0xAF;
+  40   1      }
+  41          
+  42          void pinBeep_Init(void){
+  43   1      
+  44   1              P3M1    &= ~(0x04);
+  45   1              P3M0    |= 0x04;
+  46   1              
+  47   1              beepTips_s(3, 3, 8);
+  48   1              delayMs(50);
+  49   1              beepTips_s(3, 3, 8);
+  50   1      }
+  51          
+  52          void beeps_delay(u16 cnt){
+C51 COMPILER V9.54   TIPS                                                                  08/24/2018 15:54:59 PAGE 2   
+
+  53   1      
+  54   1              while(-- cnt){
+  55   2                      
+  56   2                      NOP7();
+  57   2              }
+  58   1      }
+  59          
+  60          void powerTips(float tips_val){
+  61   1      
+  62   1              P2 |= 0x8F;
+  63   1              if(tips_val > 5.0F) P20 = 0;
+  64   1              if(tips_val > 100.0F)P21 = 0;
+  65   1              if(tips_val > 200.0F)P22 = 0;
+  66   1              if(tips_val > 300.0F)P23 = 0;
+  67   1              if(tips_val > 400.0F)P27 = 0;
+  68   1      }
+  69          
+  70          void seg_tipsShow(u8 dats){
+  71   1      
+  72   1              (dats & 0x01)?(P20 = 0):(P20 = 1);
+  73   1              (dats & 0x02)?(P21 = 0):(P21 = 1);
+  74   1              (dats & 0x04)?(P22 = 0):(P22 = 1);
+  75   1              (dats & 0x08)?(P23 = 0):(P23 = 1);
+  76   1              (dats & 0x10)?(P27 = 0):(P27 = 1);
+  77   1      }
+  78          
+  79          void segTips_Init(void){
+  80   1      
+  81   1              static u8 tips_data = 0;
+  82   1              static u8 loop = 0;
+  83   1              static bit tips_flg = 0;
+  84   1              
+  85   1              if(loop > 6){loop = 0; tips_flg = !tips_flg;}
+  86   1              else{
+  87   2              
+  88   2                      loop ++;
+  89   2                      
+  90   2                      if(!tips_flg)tips_data |= 1;
+  91   2      
+  92   2                      seg_tipsShow(tips_data);
+  93   2                      
+  94   2                      tips_data <<= 1;
+  95   2              }
+  96   1      }
+  97          
+  98          void segTips_InitCmp(void){
+  99   1      
+ 100   1              static xdata u8 loop = 0;
+ 101   1              static bit tips_flg = 0;
+ 102   1              
+ 103   1              if(loop > 16){
+ 104   2              
+ 105   2                      loop = 0;
+ 106   2                      seg_tipsShow(0x00);
+ 107   2                      dev_segTips = segMode_elecDetect;
+ 108   2              }
+ 109   1              else{
+ 110   2              
+ 111   2                      loop ++;
+ 112   2                      
+ 113   2                      if((loop % 2) == 0)tips_flg = !tips_flg;
+ 114   2                      (tips_flg)?(seg_tipsShow(0x00)):(seg_tipsShow(0xFF));
+C51 COMPILER V9.54   TIPS                                                                  08/24/2018 15:54:59 PAGE 3   
+
+ 115   2              }
+ 116   1      }
+ 117          
+ 118          void segTips_detectStandBy(void){
+ 119   1      
+ 120   1              static u8 tips_data = 0;
+ 121   1              static u8 loop = 0;
+ 122   1              static bit tips_flg = 0;
+ 123   1              
+ 124   1              if(tipsSeg_INTFLG){
+ 125   2              
+ 126   2                      tipsSeg_INTFLG = 0;
+ 127   2                      
+ 128   2                      loop = 0;
+ 129   2                      tips_flg = 0;
+ 130   2                      tips_data = 0;
+ 131   2              }
+ 132   1              
+ 133   1              if(loop > 6){loop = 0; tips_flg = !tips_flg;}
+ 134   1              else{
+ 135   2              
+ 136   2                      loop ++;
+ 137   2                      
+ 138   2                      seg_tipsShow(tips_data);
+ 139   2                      
+ 140   2                      if(!tips_flg){
+ 141   3                      
+ 142   3                              tips_data <<= 1;
+ 143   3                              tips_data |= 1;
+ 144   3                              
+ 145   3                      }else{
+ 146   3                              
+ 147   3                              tips_data >>= 1;
+ 148   3                      }
+ 149   2              }
+ 150   1      }
+ 151          
+ 152          void segTips_touchOpen(void){
+ 153   1      
+ 154   1              static u8 tips_data = 0;
+ 155   1              static u8 loop = 0;
+ 156   1              
+ 157   1              if(tipsSeg_INTFLG){
+ 158   2              
+ 159   2                      tipsSeg_INTFLG = 0;
+ 160   2                      
+ 161   2                      loop = 0;
+ 162   2                      tips_data = 0;
+ 163   2              }
+ 164   1              
+ 165   1              if(loop > 6){
+ 166   2                      
+ 167   2                      loop = 0; 
+ 168   2                      dev_segTips = segMode_elecDetect;
+ 169   2                      seg_tipsShow(0);
+ 170   2                      
+ 171   2              }
+ 172   1              else{
+ 173   2                      
+ 174   2                      loop ++;
+ 175   2                      
+ 176   2                      seg_tipsShow(tips_data);
+C51 COMPILER V9.54   TIPS                                                                  08/24/2018 15:54:59 PAGE 4   
+
+ 177   2                      tips_data <<= 1;
+ 178   2                      tips_data |= 1;
+ 179   2              }
+ 180   1      }
+ 181          
+ 182          void segTips_touchClose(void){
+ 183   1      
+ 184   1              static u8 tips_data = 0x1f;
+ 185   1              static u8 loop = 0;
+ 186   1              
+ 187   1              if(tipsSeg_INTFLG){
+ 188   2              
+ 189   2                      tipsSeg_INTFLG = 0;
+ 190   2                      
+ 191   2                      loop = 0;
+ 192   2                      tips_data = 0x1f;
+ 193   2              }
+ 194   1              
+ 195   1              if(loop > 6){
+ 196   2                      
+ 197   2                      loop = 0; 
+ 198   2                      seg_tipsShow(0);
+ 199   2              }
+ 200   1              else{
+ 201   2                      
+ 202   2                      loop ++;
+ 203   2                      
+ 204   2                      seg_tipsShow(tips_data);
+ 205   2                      tips_data >>= 1;
+ 206   2              }
+ 207   1      }
+ 208          
+ 209          void segTips_allDark(void){
+ 210   1      
+ 211   1              seg_tipsShow(0);
+ 212   1      }
+ 213          
+ 214          void beepTips(u8 tones, u16 time, u8 vol){      //“Ùµ˜£¨  ±≥§£¨ “Ù¡ø
+ 215   1      
+ 216   1              const u8 vol_fa = 10;
+ 217   1              u16 tones_base  = tones * 50 + 100;
+ 218   1              u16 cycle               = time * 1000 / tones_base;
+ 219   1              u16 loop;
+ 220   1              
+ 221   1              for(loop = 0; loop < cycle; loop ++){
+ 222   2              
+ 223   2                      PIN_BEEP = 0;
+ 224   2                      beeps_delay(tones_base / vol_fa * vol);
+ 225   2                      PIN_BEEP = 1;
+ 226   2                      beeps_delay(tones_base / vol_fa * (vol_fa - vol));
+ 227   2              }
+ 228   1      }
+ 229          
+ 230          void beepTips_s(u8 tones, u16 time, u8 vol){    //“Ùµ˜£¨  ±≥§*100£¨ “Ù¡ø
+ 231   1      
+ 232   1              u8 loop = time;
+ 233   1              
+ 234   1              for(loop = time; loop != 0; loop --)beepTips(tones, 50, vol);
+ 235   1      }
+ 236          
+ 237          void beeps(u8 num){
+ 238   1      
+C51 COMPILER V9.54   TIPS                                                                  08/24/2018 15:54:59 PAGE 5   
+
+ 239   1              u8 loop;
+ 240   1              
+ 241   1              for(loop = 0; loop < spect_len[num]; loop ++)
+ 242   1                      beepTips_s(spect[num][loop], 4, 8);
+ 243   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    667    ----
+   CONSTANT SIZE    =    135    ----
+   XDATA SIZE       =      1    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     11      14
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      5    ----
+   EDATA SIZE       =   ----    ----
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

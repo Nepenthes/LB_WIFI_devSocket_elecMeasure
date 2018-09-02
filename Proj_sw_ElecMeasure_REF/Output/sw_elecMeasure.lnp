@@ -1,0 +1,19 @@
+".\Output\Usr_Main.obj",
+".\Output\timerAct.obj",
+".\Output\appTimer.obj",
+".\Output\dataManage.obj",
+".\Output\Tips.obj",
+".\Output\usrKin.obj",
+".\Output\dataTrans.obj",
+".\Output\HW8012.obj",
+".\Output\wifi_LPT220.obj",
+".\Output\Relay.obj",
+".\Output\HYM8564.obj",
+".\Output\Soft_UART.obj",
+".\Output\delay.obj",
+".\Output\USART.obj",
+".\Output\EEPROM.obj",
+".\Output\pars_Method.obj" 
+TO ".\Output\sw_elecMeasure" 
+
+PRINT(".\Listings\sw_elecMeasure.map") REMOVEUNUSED 
