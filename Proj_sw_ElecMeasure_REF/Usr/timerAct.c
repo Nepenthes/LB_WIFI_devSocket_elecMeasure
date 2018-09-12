@@ -168,8 +168,8 @@ void thread_Timing(void){
 //						}
 //					}
 					
-					if((valTime_Local.time_Hour * 60 + valTime_Local.time_Minute) ==  \
-					   (timDatsTemp_CalibrateTab[loop].Hour * 60 + timDatsTemp_CalibrateTab[loop].Minute) && //时刻比对
+					if(((u16)valTime_Local.time_Hour * 60 + (u16)valTime_Local.time_Minute) ==  \
+					   ((u16)timDatsTemp_CalibrateTab[loop].Hour * 60 + (u16)timDatsTemp_CalibrateTab[loop].Minute) && //时刻比对
 					   (valTime_Local.time_Second <= 5)){	 //时刻比对时间限在前5秒
 						   
 //						uartObjWIFI_Send_String("time_UP!!!", 11);
@@ -193,8 +193,8 @@ void thread_Timing(void){
 							swStatus_fromTim = swStatus_off;
 						}
 					}else
-					if((valTime_Local.time_Hour * 60 + valTime_Local.time_Minute) >	//当前时间大于定时时间，直接清除一次性标志
-					   (timDatsTemp_CalibrateTab[loop].Hour * 60 + timDatsTemp_CalibrateTab[loop].Minute)){
+					if(((u16)valTime_Local.time_Hour * 60 + (u16)valTime_Local.time_Minute) >	//当前时间大于定时时间，直接清除一次性标志
+					   ((u16)timDatsTemp_CalibrateTab[loop].Hour * 60 + (u16)timDatsTemp_CalibrateTab[loop].Minute)){
 						   
 						//一次性定时判断
 						if(swTim_onShoot_FLAG & (1 << loop)){	//是否为一次性定时，是则清空本段定时信息

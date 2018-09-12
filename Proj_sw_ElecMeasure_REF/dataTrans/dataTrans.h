@@ -4,7 +4,7 @@
 #include "STC15Fxxxx.H"
 #include "USART.h"
 
-#define BAUD_WIFI	 19200UL   //串口波特率->WIFI模块通讯
+#define BAUD_WIFI	 115200UL   //串口波特率->WIFI模块通讯
 
 #define rxBuff_WIFI	 RX1_Buffer	 
 

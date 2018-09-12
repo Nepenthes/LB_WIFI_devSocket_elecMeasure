@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   HW8012                                                                08/24/2018 15:55:00 PAGE 1   
+C51 COMPILER V9.54   HW8012                                                                09/07/2018 15:49:48 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE HW8012
@@ -62,7 +62,7 @@ line level    source
   51   1              pinFP_powerCNT += 1.0;
   52   1      }
   53          
-C51 COMPILER V9.54   HW8012                                                                08/24/2018 15:55:00 PAGE 2   
+C51 COMPILER V9.54   HW8012                                                                09/07/2018 15:49:48 PAGE 2   
 
   54          void Ext_INT3 (void) interrupt INT3_VECTOR{     //进中断时已经清除标志
   55   1      
@@ -126,7 +126,7 @@ line level    source
  113   1              else{
  114   2              
  115   2                      log_Cnt = 0;
-C51 COMPILER V9.54   HW8012                                                                08/24/2018 15:55:00 PAGE 3   
+C51 COMPILER V9.54   HW8012                                                                09/07/2018 15:49:48 PAGE 3   
 
  116   2                      
  117   2      //              paramElec_Param.eVoltage = paramElec_Param.eCurrent = paramElec_Param.ePower = elec_Consum = 123.45600

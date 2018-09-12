@@ -56,9 +56,6 @@ switch_Status	swStatus_fromUsr  		= swStatus_null;
 //数据包响应回复长度——默认局域网数据长度
 u8 xdata 		repeatTX_Len			= dataTransLength_objMOBILE;
 
-//设备锁标志
-bit				deviceLock_flag			= false;
-
 //远端MACID缓存
 u8	xdata		Dst_MACID_Temp[6] 		= {0};
 

@@ -12,6 +12,8 @@
 
 /********************本地文件变量创建区******************/
 unsigned char xdata MAC_ID[6] = {0};
+//设备锁标志
+bit	deviceLock_flag = false;
 
 /*------------------------------------------------------------------*/
 void software_Reset(void){
@@ -28,6 +30,16 @@ void MAC_ID_Relaes(void){
 	unsigned char code *id_ptr 	= ROMADDR_ROM_STC_ID;
 	
 	memcpy(MAC_ID, id_ptr - 6, 6); //顺序向前，往前读，只取后六位
+}
+
+void SYS_Data_Relaes(void){
+
+	u8 dats_temp = 0;
+	
+	/*设备锁信息回复*/
+	EEPROM_read_n(EEPROM_ADDR_deviceLockFLAG, &dats_temp, 1);
+	if(dats_temp)deviceLock_flag = 1;
+	else deviceLock_flag  = 0;
 }
 
 void Factory_recover(void){

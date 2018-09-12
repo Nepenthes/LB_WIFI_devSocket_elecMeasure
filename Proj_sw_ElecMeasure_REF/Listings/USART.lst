@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   USART                                                                 08/24/2018 15:55:00 PAGE 1   
+C51 COMPILER V9.54   USART                                                                 09/07/2018 15:49:48 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE USART
@@ -62,7 +62,7 @@ line level    source
   51          //                              INT_CLKO &= ~0x02;      //不输出时钟
   52          //                              TR1  = 1;
   53          //                      }
-C51 COMPILER V9.54   USART                                                                 08/24/2018 15:55:00 PAGE 2   
+C51 COMPILER V9.54   USART                                                                 09/07/2018 15:49:48 PAGE 2   
 
   54          //                      else if(COMx->UART_BRT_Use == BRT_Timer2)
   55          //                      {
@@ -126,7 +126,7 @@ line level    source
  113          //                      TL2 = (u8)j;
  114          //                      IE2  &= ~(1<<2);        //禁止中断
  115          //                      AUXR |=  (1<<4);        //Timer run enable
-C51 COMPILER V9.54   USART                                                                 08/24/2018 15:55:00 PAGE 3   
+C51 COMPILER V9.54   USART                                                                 09/07/2018 15:49:48 PAGE 3   
 
  116          //              }
  117          //              else    return 2;       //模式错误
@@ -190,7 +190,7 @@ line level    source
  175          //void uart2_datsSend(u8 *dats,u8 datsLen){
  176          
  177          //      u8 loop = 0;
-C51 COMPILER V9.54   USART                                                                 08/24/2018 15:55:00 PAGE 4   
+C51 COMPILER V9.54   USART                                                                 09/07/2018 15:49:48 PAGE 4   
 
  178          //      
  179          //      for(loop = 0; loop < datsLen; loop ++){
@@ -254,7 +254,7 @@ line level    source
  237          //      }
  238          //      
  239          
-C51 COMPILER V9.54   USART                                                                 08/24/2018 15:55:00 PAGE 5   
+C51 COMPILER V9.54   USART                                                                 09/07/2018 15:49:48 PAGE 5   
 
  240          //      if(TI2)
  241          //      {

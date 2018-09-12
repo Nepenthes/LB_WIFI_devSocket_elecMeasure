@@ -22,7 +22,7 @@
 #define	UART2_SW_P10_P11	0
 #define	UART2_SW_P46_P47	1
 
-#define	TimeOutSet1			15	
+#define	TimeOutSet1			10	
 //#define	TimeOutSet2		5
 
 //#define	BRT_Timer1	1

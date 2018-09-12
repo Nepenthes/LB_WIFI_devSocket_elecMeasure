@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   APPTIMER                                                              08/24/2018 15:54:59 PAGE 1   
+C51 COMPILER V9.54   APPTIMER                                                              09/07/2018 15:49:47 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE APPTIMER
@@ -62,7 +62,7 @@ line level    source
   50   1      
   51   1              AUXR |= 0x80;           
   52   1              TMOD &= 0xF0;           
-C51 COMPILER V9.54   APPTIMER                                                              08/24/2018 15:54:59 PAGE 2   
+C51 COMPILER V9.54   APPTIMER                                                              09/07/2018 15:49:47 PAGE 2   
 
   53   1              TL0   = 0x50;           
   54   1              TH0   = 0xFB;   
@@ -126,7 +126,7 @@ line level    source
  112   5                                              PIN_BEEP = 1;
  113   5                                              dev_beeps = beepsMode_null;
  114   5                                      }
-C51 COMPILER V9.54   APPTIMER                                                              08/24/2018 15:54:59 PAGE 3   
+C51 COMPILER V9.54   APPTIMER                                                              09/07/2018 15:49:47 PAGE 3   
 
  115   4                                      
  116   4                              }break;
@@ -190,7 +190,7 @@ line level    source
  174   4                              }break;
  175   3                      }
  176   2              }
-C51 COMPILER V9.54   APPTIMER                                                              08/24/2018 15:54:59 PAGE 4   
+C51 COMPILER V9.54   APPTIMER                                                              09/07/2018 15:49:47 PAGE 4   
 
  177   1              
  178   1              //*******************tips指示灯业务**************************/
@@ -254,7 +254,7 @@ line level    source
  236   2                      
  237   2                      default:{
  238   3                      
-C51 COMPILER V9.54   APPTIMER                                                              08/24/2018 15:54:59 PAGE 5   
+C51 COMPILER V9.54   APPTIMER                                                              09/07/2018 15:49:47 PAGE 5   
 
  239   3                              PIN_LED = tipsLED_statusOFF;
  240   3                      
@@ -318,7 +318,7 @@ line level    source
  298   2                      if(fpDetectCount_stdBy < fpDetectPeriod_stdBy)fpDetectCount_stdBy ++;
  299   2                      else{
  300   3                              
-C51 COMPILER V9.54   APPTIMER                                                              08/24/2018 15:54:59 PAGE 6   
+C51 COMPILER V9.54   APPTIMER                                                              09/07/2018 15:49:47 PAGE 6   
 
  301   3                              static xdata float pinFP_powerStdby_local = 0.0F;
  302   3                              
@@ -382,7 +382,7 @@ line level    source
  360   2                      
  361   2                      if(pin_funFP_Select){   //电压
  362   3                      
-C51 COMPILER V9.54   APPTIMER                                                              08/24/2018 15:54:59 PAGE 7   
+C51 COMPILER V9.54   APPTIMER                                                              09/07/2018 15:49:47 PAGE 7   
 
  363   3                              paramElec_Param.eVoltage = pinFP_volXcur * (coefficient_Vol - (0.00000082 * pinFP_volXcur));
  364   3                              
@@ -415,9 +415,9 @@ line level    source
  391   2                      paramElec_Param.ePower = (float)pinFP_power * (coefficient_Pow - (0.00000001 * pinFP_power));   //功率
  392   2                      
  393   2                      {
- 394   3                              u16 powerFP_Temp = pinFP_power;
+ 394   3                              float powerFP_Temp = pinFP_power;
  395   3                              
- 396   3                              if(!powerFP_Temp)powerFP_Temp = 1;
+ 396   3                              if(powerFP_Temp < 0.1F)powerFP_Temp = 0.1F;
  397   3                              elec_Consum     += 1.00F * ((float)pinFP_powerCNT * paramElec_Param.ePower / (1000.00F * 3600.00F * (float)
              -powerFP_Temp)); //用电量
  398   3                      }
@@ -429,11 +429,11 @@ line level    source
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =   1448    ----
+   CODE SIZE        =   1470    ----
    CONSTANT SIZE    =     19    ----
    XDATA SIZE       =     20    ----
    PDATA SIZE       =   ----    ----
-   DATA SIZE        =      3       2
+   DATA SIZE        =      3       4
    IDATA SIZE       =   ----    ----
    BIT SIZE         =   ----    ----
    EDATA SIZE       =   ----    ----

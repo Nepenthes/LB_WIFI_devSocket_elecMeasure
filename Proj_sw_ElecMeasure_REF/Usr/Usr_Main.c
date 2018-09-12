@@ -31,6 +31,7 @@ void usr_Test(void){
 void bsp_Init(void){
 	
 	MAC_ID_Relaes		();
+	SYS_Data_Relaes		();
 
 	appTimer0_Init		();
 	intMeasure_Init		();

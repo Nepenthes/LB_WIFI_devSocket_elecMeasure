@@ -391,9 +391,9 @@ void timer0_Rountine (void) interrupt TIMER0_VECTOR{
 		paramElec_Param.ePower = (float)pinFP_power * (coefficient_Pow - (0.00000001 * pinFP_power));	//功率
 		
 		{
-			u16 powerFP_Temp = pinFP_power;
+			float powerFP_Temp = pinFP_power;
 			
-			if(!powerFP_Temp)powerFP_Temp = 1;
+			if(powerFP_Temp < 0.1F)powerFP_Temp = 0.1F;
 			elec_Consum	+= 1.00F * ((float)pinFP_powerCNT * paramElec_Param.ePower / (1000.00F * 3600.00F * (float)powerFP_Temp)); //用电量
 		}
 		

@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   TIPS                                                                  08/24/2018 15:54:59 PAGE 1   
+C51 COMPILER V9.54   TIPS                                                                  09/07/2018 15:49:47 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE TIPS
@@ -62,7 +62,7 @@ line level    source
   50   1      }
   51          
   52          void beeps_delay(u16 cnt){
-C51 COMPILER V9.54   TIPS                                                                  08/24/2018 15:54:59 PAGE 2   
+C51 COMPILER V9.54   TIPS                                                                  09/07/2018 15:49:47 PAGE 2   
 
   53   1      
   54   1              while(-- cnt){
@@ -126,7 +126,7 @@ line level    source
  112   2                      
  113   2                      if((loop % 2) == 0)tips_flg = !tips_flg;
  114   2                      (tips_flg)?(seg_tipsShow(0x00)):(seg_tipsShow(0xFF));
-C51 COMPILER V9.54   TIPS                                                                  08/24/2018 15:54:59 PAGE 3   
+C51 COMPILER V9.54   TIPS                                                                  09/07/2018 15:49:47 PAGE 3   
 
  115   2              }
  116   1      }
@@ -190,7 +190,7 @@ line level    source
  174   2                      loop ++;
  175   2                      
  176   2                      seg_tipsShow(tips_data);
-C51 COMPILER V9.54   TIPS                                                                  08/24/2018 15:54:59 PAGE 4   
+C51 COMPILER V9.54   TIPS                                                                  09/07/2018 15:49:47 PAGE 4   
 
  177   2                      tips_data <<= 1;
  178   2                      tips_data |= 1;
@@ -254,7 +254,7 @@ line level    source
  236          
  237          void beeps(u8 num){
  238   1      
-C51 COMPILER V9.54   TIPS                                                                  08/24/2018 15:54:59 PAGE 5   
+C51 COMPILER V9.54   TIPS                                                                  09/07/2018 15:49:47 PAGE 5   
 
  239   1              u8 loop;
  240   1              

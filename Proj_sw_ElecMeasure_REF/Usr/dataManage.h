@@ -32,7 +32,10 @@
 #define		EEPROM_ADDR_unDefine12           0x0000
 #define		EEPROM_ADDR_unDefine13           0x0000
 
+extern bit deviceLock_flag;
+
 void MAC_ID_Relaes(void);
+void SYS_Data_Relaes(void);
 void birthDay_Judge(void);
 void software_Reset(void);
 void Factory_recover(void);

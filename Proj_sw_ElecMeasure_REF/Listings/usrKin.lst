@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   USRKIN                                                                08/24/2018 15:54:59 PAGE 1   
+C51 COMPILER V9.54   USRKIN                                                                09/07/2018 15:49:47 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE USRKIN
@@ -62,7 +62,7 @@ line level    source
   51   2                      
   52   2                      keyPress_FLG = 1;
   53   2              
-C51 COMPILER V9.54   USRKIN                                                                08/24/2018 15:54:59 PAGE 2   
+C51 COMPILER V9.54   USRKIN                                                                09/07/2018 15:49:47 PAGE 2   
 
   54   2                      if(!usrKeyCount_EN) usrKeyCount_EN= 1;  //¼ÆÊ±
   55   2                      
@@ -126,7 +126,7 @@ MODULE INFORMATION:   STATIC OVERLAYABLE
    PDATA SIZE       =   ----    ----
    DATA SIZE        =   ----       9
    IDATA SIZE       =      2    ----
-C51 COMPILER V9.54   USRKIN                                                                08/24/2018 15:54:59 PAGE 3   
+C51 COMPILER V9.54   USRKIN                                                                09/07/2018 15:49:47 PAGE 3   
 
    BIT SIZE         =      4    ----
    EDATA SIZE       =   ----    ----

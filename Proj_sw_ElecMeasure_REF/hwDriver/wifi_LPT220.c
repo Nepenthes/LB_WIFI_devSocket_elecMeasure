@@ -102,7 +102,9 @@ void WIFI_hwRestoreFactory(void){
 	funKey_WIFI_cnt = 5000; //5000ms
 	
 	beeps(4);		//提示，语句下置，与上面动作同步进行
-	delayMs(2000);
+	delayMs(6000);
+	
+	((void(code *)(void))0x0000)();
 }
 
 /**********************************退透传*******************************/
@@ -186,7 +188,7 @@ bit WIFI_configInit(void){
 	u16 data tOut_cnt	= 5000;
 	
 	WIFI_funcPIN_nRst	= WIFI_pinEN;	//硬件复位一次
-	delayMs(200);
+	delayMs(300);
 	WIFI_funcPIN_nRst	= WIFI_pinDISEN;
 	delayMs(3000);
 //	WIFI_funcPIN_nReload = WIFI_pinEN;

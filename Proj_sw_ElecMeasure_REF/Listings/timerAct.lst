@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   TIMERACT                                                              08/24/2018 15:54:59 PAGE 1   
+C51 COMPILER V9.54   TIMERACT                                                              09/07/2018 15:49:47 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE TIMERACT
@@ -62,7 +62,7 @@ line level    source
   49   1      
   50   1              u8 loop;
   51   1              
-C51 COMPILER V9.54   TIMERACT                                                              08/24/2018 15:54:59 PAGE 2   
+C51 COMPILER V9.54   TIMERACT                                                              09/07/2018 15:49:47 PAGE 2   
 
   52   1              weekNum --;
   53   1              for(loop = 0; loop < 7; loop ++){
@@ -126,7 +126,7 @@ line level    source
  111   2                      
  112   2                      if(!read_FLG){
  113   3                      
-C51 COMPILER V9.54   TIMERACT                                                              08/24/2018 15:54:59 PAGE 3   
+C51 COMPILER V9.54   TIMERACT                                                              09/07/2018 15:49:47 PAGE 3   
 
  114   3                              read_FLG = 1;
  115   3                              
@@ -188,10 +188,11 @@ line level    source
  168   5      //                                              }
  169   5      //                                      }
  170   5                                              
- 171   5                                              if((valTime_Local.time_Hour * 60 + valTime_Local.time_Minute) ==  \
- 172   5                                                 (timDatsTemp_CalibrateTab[loop].Hour * 60 + timDatsTemp_CalibrateTab[loop].Minute) && //Ê±¿Ì±È¶Ô
-C51 COMPILER V9.54   TIMERACT                                                              08/24/2018 15:54:59 PAGE 4   
+ 171   5                                              if(((u16)valTime_Local.time_Hour * 60 + (u16)valTime_Local.time_Minute) ==  \
+ 172   5                                                 ((u16)timDatsTemp_CalibrateTab[loop].Hour * 60 + (u16)timDatsTemp_CalibrateTab[loop].Minute) && //
+C51 COMPILER V9.54   TIMERACT                                                              09/07/2018 15:49:47 PAGE 4   
 
+             -Ê±¿Ì±È¶Ô
  173   5                                                 (valTime_Local.time_Second <= 5)){    //Ê±¿Ì±È¶ÔÊ±¼äÏÞÔÚÇ°5Ãë
  174   6                                                         
  175   6      //                                              uartObjWIFI_Send_String("time_UP!!!", 11);
@@ -215,9 +216,9 @@ line level    source
  193   7                                                              swStatus_fromTim = swStatus_off;
  194   7                                                      }
  195   6                                              }else
- 196   5                                              if((valTime_Local.time_Hour * 60 + valTime_Local.time_Minute) > //µ±Ç°Ê±¼ä´óÓÚ¶¨Ê±Ê±¼ä£¬Ö±½ÓÇå³ýÒ»´ÎÐ
-             -Ô±êÖ¾
- 197   5                                                 (timDatsTemp_CalibrateTab[loop].Hour * 60 + timDatsTemp_CalibrateTab[loop].Minute)){
+ 196   5                                              if(((u16)valTime_Local.time_Hour * 60 + (u16)valTime_Local.time_Minute) >       //µ±Ç°Ê±¼ä´óÓÚ¶¨Ê±Ê±¼ä£¬Ö±½
+             -ÓÇå³ýÒ»´ÎÐÔ±êÖ¾
+ 197   5                                                 ((u16)timDatsTemp_CalibrateTab[loop].Hour * 60 + (u16)timDatsTemp_CalibrateTab[loop].Minute)){
  198   6                                                         
  199   6                                                      //Ò»´ÎÐÔ¶¨Ê±ÅÐ¶Ï
  200   6                                                      if(swTim_onShoot_FLAG & (1 << loop)){   //ÊÇ·ñÎªÒ»´ÎÐÔ¶¨Ê±£¬ÊÇÔòÇå¿Õ±¾¶Î¶¨Ê±ÐÅÏ¢
@@ -236,7 +237,7 @@ line level    source
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    822    ----
+   CODE SIZE        =    814    ----
    CONSTANT SIZE    =     21    ----
    XDATA SIZE       =   ----      19
    PDATA SIZE       =   ----    ----
