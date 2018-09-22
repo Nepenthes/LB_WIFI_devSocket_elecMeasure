@@ -18,6 +18,7 @@
 /*脉冲计数值*/
 float xdata pinFP_volXcurCNT = 1.0F; //电流电压脉冲计数值
 float xdata pinFP_powerCNT 	 = 1.0F; //功率脉冲计数值
+float xdata pinFP_stdby_powerCNT = 1.0F; //功率脉冲预测计数值
 
 /*频率定值*/
 float xdata pinFP_volXcur 	 = 1.0F; //电流电压 检测频率值
@@ -48,12 +49,13 @@ void intMeasure_Init(void){
 /********************* INT2中断函数 *************************/
 void Ext_INT2 (void) interrupt INT2_VECTOR{	//进中断时已经清除标志
 
-	pinFP_powerCNT += 1.0;
+	pinFP_powerCNT += 1.0F;
+	pinFP_stdby_powerCNT += 1.0F;
 }
 
 void Ext_INT3 (void) interrupt INT3_VECTOR{	//进中断时已经清除标志
 
-	pinFP_volXcurCNT += 1.0;
+	pinFP_volXcurCNT += 1.0F;
 }
 
 //float elecConsum_save_read(void){

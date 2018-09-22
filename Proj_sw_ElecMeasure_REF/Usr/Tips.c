@@ -8,6 +8,7 @@ enum_ledTips dev_ledTips = ledMode_init;  //状态机状态：led状态指示
 enum_beeps   dev_beeps	 = beepsMode_null; //状态机状态：蜂鸣器状态指示
 bit tipsBeep_INTFLG = 0; //蜂鸣器状态中断切换标志（当前状态正在进行时被中断切换，再次回到当前状态时使状态及内部变量回到初始值）
 bit tipsSeg_INTFLG = 0; //数码管状态中断切换标志 （当前状态正在进行时被中断切换，再次回到当前状态时使状态及内部变量回到初始值）
+bit beeps_EN = 1; //蜂鸣器使能
 
 #define spect_size 15
 u8 code spect_len[spect_size] 	= {2,2,2,4,4,4,7,7,7,6,6,3,3};
@@ -60,7 +61,7 @@ void beeps_delay(u16 cnt){
 void powerTips(float tips_val){
 
 	P2 |= 0x8F;
-	if(tips_val > 5.0F) P20 = 0;
+	if(tips_val > 15.0F) P20 = 0;
 	if(tips_val > 100.0F)P21 = 0;
 	if(tips_val > 200.0F)P22 = 0;
 	if(tips_val > 300.0F)P23 = 0;
@@ -220,7 +221,7 @@ void beepTips(u8 tones, u16 time, u8 vol){	//音调， 时长， 音量
 	
 	for(loop = 0; loop < cycle; loop ++){
 	
-		PIN_BEEP = 0;
+		if(beeps_EN)PIN_BEEP = 0;
 		beeps_delay(tones_base / vol_fa * vol);
 		PIN_BEEP = 1;
 		beeps_delay(tones_base / vol_fa * (vol_fa - vol));

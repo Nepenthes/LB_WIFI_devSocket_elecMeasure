@@ -66,6 +66,9 @@ u16	xdata		heartBeat_Cnt			= 0;
 //ÐÄÌø°ü¼ÆÊýÖÜÆÚ
 const 	u32 	heartBeat_Period 		= 8000; 	//ÐÄÌø°üÖÜÆÚÉèÖÃºÁÃëÏµÊýÖµ * 50us£¨¶¨Ê±Æ÷ÄÚ¼ÆÊý£©
 
+//±¾µØ¿ª¹Ø×´Ì¬¹ã²¥Ê¹ÄÜ
+bit swDataBroadcast_IF					= 0;
+
 /*--------------------------------------------------------------*/
 void uartObjWIFI_Init(void){
 	
@@ -155,7 +158,11 @@ void dtasTX_loadBasic_AUTO(u8 dats_Tx[45],		//·¢ËÍ°üÊý¾Ý»º´æ»ù±¾ÐÅÏ¢Ìî×°
 			memcpy(&datsTemp[0], &dats_Tx[1], 32);
 			memcpy(&dats_Tx[13], &datsTemp[0], 32);	//Ö¡Í·ºóÀ­¿ª¿Õ³ö12¸ö×Ö½Ú
 			memcpy(&dats_Tx[1],  &Dst_MACID_Temp[0], 6);	//Ô¶¶ËMACIDÌî³ä
+#if(SMARTSWITCH_IF != 1)
 			memcpy(&dats_Tx[8],  &MAC_ID[1], 5);	/*dats_Tx[7] ÔÝÊ±Ìî0*///Ô¶¶ËMACIDÌî³ä
+#else
+			memcpy(&dats_Tx[7],  &MAC_ID[0], 6);	/*ÀÏ°æAPPÈ«MACÌî³ä*///Ô¶¶ËMACIDÌî³ä
+#endif
 			
 			dats_Tx[1 + 12] = dataTransLength_objSERVER;
 			dats_Tx[2 + 12] = frame_Type;
@@ -163,9 +170,12 @@ void dtasTX_loadBasic_AUTO(u8 dats_Tx[45],		//·¢ËÍ°üÊý¾Ý»º´æ»ù±¾ÐÅÏ¢Ìî×°
 			
 			if(!ifSpecial_CMD)dats_Tx[10 + 12] = SWITCH_TYPE_FP;	//¿ª¹ØÀàÐÍÌî³ä
 			
-			memcpy(&dats_Tx[5 + 12], &MAC_ID[1], 5);	//MACÌî³ä
-								  
-			dats_Tx[4 + 12] = frame_Check(&dats_Tx[5 + 12], 28);	
+#if(SMARTSWITCH_IF != 1)
+				memcpy(&dats_Tx[5 + 12], &MAC_ID[1], 5);	//MACÌî³ä
+				dats_Tx[4 + 12] = frame_Check(&dats_Tx[5 + 12], 28);	//Ð£ÑéÂë		
+#else		
+				memcpy(&dats_Tx[4 + 12], &MAC_ID[0], 6);	//MACÌî³ä-ÀÏ°æAPP MACµØÖ·Îª6Î»£¬´ÓD16¿ªÊ¼
+#endif
 			
 		}break;
 		
@@ -180,9 +190,13 @@ void dtasTX_loadBasic_AUTO(u8 dats_Tx[45],		//·¢ËÍ°üÊý¾Ý»º´æ»ù±¾ÐÅÏ¢Ìî×°
 			
 			if(!ifSpecial_CMD)dats_Tx[10] = SWITCH_TYPE_FP;	//¿ª¹ØÀàÐÍÌî³ä
 			
-			memcpy(&dats_Tx[5], &MAC_ID[1], 5);	//MACÌî³ä
-								  
-			dats_Tx[4] 	= frame_Check(&dats_Tx[5], 28);
+#if(SMARTSWITCH_IF != 1)
+				memcpy(&dats_Tx[5], &MAC_ID[1], 5);	//MACÌî³ä
+				dats_Tx[4] 	= frame_Check(&dats_Tx[5], 28); //Ð£ÑéÂë		
+#else
+				memcpy(&dats_Tx[4], &MAC_ID[0], 6);	//MACÌî³ä-ÀÏ°æAPP MACµØÖ·Îª6Î»£¬´ÓD4¿ªÊ¼
+#endif
+			
 		}break;
 		
 		default:break;
@@ -216,9 +230,12 @@ void dtasTX_loadBasic_CUST(dataTrans_obj obj_custom,	//·¢ËÍ°üÊý¾Ý»º´æ»ù±¾ÐÅÏ¢Ìî×
 			
 			if(!ifSpecial_CMD)dats_Tx[10 + 12] = SWITCH_TYPE_FP;	//¿ª¹ØÀàÐÍÌî³ä
 			
+#if(SMARTSWITCH_IF != 1)
 			memcpy(&dats_Tx[5 + 12], &MAC_ID[1], 5);	//MACÌî³ä
-								  
-			dats_Tx[4 + 12] = frame_Check(&dats_Tx[5 + 12], 28);	
+			dats_Tx[4 + 12] = frame_Check(&dats_Tx[5 + 12], 28);	//Ð£ÑéÂë		
+#else		
+			memcpy(&dats_Tx[4 + 12], &MAC_ID[0], 6);	//MACÌî³ä-ÀÏ°æAPP MACµØÖ·Îª6Î»£¬´ÓD16¿ªÊ¼
+#endif
 			
 		}break;
 		
@@ -235,9 +252,13 @@ void dtasTX_loadBasic_CUST(dataTrans_obj obj_custom,	//·¢ËÍ°üÊý¾Ý»º´æ»ù±¾ÐÅÏ¢Ìî×
 			
 			if(!ifSpecial_CMD)dats_Tx[10] = SWITCH_TYPE_FP;	//¿ª¹ØÀàÐÍÌî³ä
 			
+#if(SMARTSWITCH_IF != 1)
 			memcpy(&dats_Tx[5], &MAC_ID[1], 5);	//MACÌî³ä
-								  
-			dats_Tx[4] 	= frame_Check(&dats_Tx[5], 28);
+			dats_Tx[4] 	= frame_Check(&dats_Tx[5], 28); //Ð£ÑéÂë		
+#else
+			memcpy(&dats_Tx[4], &MAC_ID[0], 6);	//MACÌî³ä-ÀÏ°æAPP MACµØÖ·Îª6Î»£¬´ÓD4¿ªÊ¼
+#endif
+		
 		}break;
 	}	
 }
@@ -319,7 +340,7 @@ void thread_dataTrans(void){
 	bit datsQualified_FLG					= 0;	
 	bit Parsing_EN 							= 0;
 	
-	u8 xdata heartBeat_Pack[14] 			= {0};	
+	u8 xdata heartBeat_Pack[dataHeartBeatLength_objSERVER] = {0};	
 	
 	static u8 elec_Consum_moment			= 0;	//ÓÃµçÁ¿¶ÔÓ¦Ê±¶Î±êÖ¾£¬µçÁ¿Ö»ÊÇÃ¿Ð¡Ê±µÄÓÃµçÁ¿
 	
@@ -331,9 +352,14 @@ void thread_dataTrans(void){
 		memset(rxBuff_WIFI_temp, 0, 45 * sizeof(u8));
 		
 		if((datsRcv_ZIGB.rcvDats[0] == FRAME_HEAD_SERVER) && 
+#if(SMARTSWITCH_IF != 1)
 		   (datsRcv_ZIGB.rcvDats[13] == dataTransLength_objSERVER) &&
-		   (datsRcv_ZIGB.rcvDats[14] == FRAME_TYPE_MtoS_CMD) &&
-		   (datsRcv_ZIGB.rcvDatsLen >= dataTransLength_objSERVER)){ /*ÉÏÎ»»ú·¢ÁË¸ö×Ö½Ú*/
+#endif	
+		   (datsRcv_ZIGB.rcvDats[14] == FRAME_TYPE_MtoS_CMD) 
+#if(SMARTSWITCH_IF != 1)
+			&& (datsRcv_ZIGB.rcvDatsLen >= dataTransLength_objSERVER)
+#endif	
+			){ /*ÉÏÎ»»ú·¢ÁË¸ö×Ö½Ú*/
 			
 			memcpy(&Dst_MACID_Temp[0], &datsRcv_ZIGB.rcvDats[7], 6);  //Ô¶¶ËMACIDÔÝ´æ	
 			rxBuff_WIFI_temp[0] = datsRcv_ZIGB.rcvDats[0]; //Ö¡Í·¸³Öµ
@@ -348,9 +374,14 @@ void thread_dataTrans(void){
 				
 		}else
 		if((datsRcv_ZIGB.rcvDats[0] == FRAME_HEAD_MOBILE) && 
+#if(SMARTSWITCH_IF != 1)	
 		   (datsRcv_ZIGB.rcvDats[1] == dataTransLength_objMOBILE) &&
-		   (datsRcv_ZIGB.rcvDats[2] == FRAME_TYPE_MtoS_CMD) &&
-		   (datsRcv_ZIGB.rcvDatsLen == dataTransLength_objMOBILE)){
+#endif	
+		   (datsRcv_ZIGB.rcvDats[2] == FRAME_TYPE_MtoS_CMD) 
+#if(SMARTSWITCH_IF != 1)		
+			&& (datsRcv_ZIGB.rcvDatsLen == dataTransLength_objMOBILE)
+#endif		
+			){
 		
 			memcpy(rxBuff_WIFI_temp, datsRcv_ZIGB.rcvDats, dataTransLength_objMOBILE);	//Êý¾Ý¼ÓÔØ
 			
@@ -363,8 +394,11 @@ void thread_dataTrans(void){
 				
 		}else
 		if((datsRcv_ZIGB.rcvDats[0] == FRAME_HEAD_HEARTBEAT) && 
-		   (datsRcv_ZIGB.rcvDats[1] == dataHeartBeatLength_objSERVER) &&
-		   (datsRcv_ZIGB.rcvDatsLen == 14)){ /*·þÎñÆ÷»ØµÄ»¹ÊÇ14×Ö½Ú*///µ«ÊÇÖ¡³¤Îª20£¬ÎÒ·¢µÄ20×Ö½Ú£¬·þÎñÆ÷ÒÀÈ»»Ø14×Ö½Ú
+		   (datsRcv_ZIGB.rcvDats[1] == dataHeartBeatLength_objSERVER) 
+#if(SMARTSWITCH_IF != 1)			
+			&& (datsRcv_ZIGB.rcvDatsLen == 14)
+#endif		
+			){ /*·þÎñÆ÷»ØµÄ»¹ÊÇ14×Ö½Ú*///µ«ÊÇÖ¡³¤Îª20£¬ÎÒ·¢µÄ20×Ö½Ú£¬·þÎñÆ÷ÒÀÈ»»Ø14×Ö½Ú
 			
 			memcpy(rxBuff_WIFI_temp, datsRcv_ZIGB.rcvDats, 14);	//Êý¾Ý¼ÓÔØ
 			
@@ -381,7 +415,7 @@ void thread_dataTrans(void){
 		}
 	}
 	
-	/*********************************Êý¾Ý°üÀàÐÍÕç±ð**********************************/
+	/*********************************Êý¾Ý°üÀàÐÍÕç±ð**********************************/	
 	if(datsQualified_FLG){
 		
 		bit frameCodeCheck_PASS = 0; //Ð£ÑéÂë¼ì²éÍ¨¹ý±êÖ¾
@@ -395,19 +429,22 @@ void thread_dataTrans(void){
 			case dataTransLength_objMOBILE:{
 			
 				if(rxBuff_WIFI_temp[4] == frame_Check(&rxBuff_WIFI_temp[5], 28))frameCodeCheck_PASS = 1; //Ð£ÑéÂë¼ì²é
+#if(SMARTSWITCH_IF == 1)
+				if(!memcmp(&rxBuff_WIFI_temp[4], &MAC_ID[0], 6))frameMacCheck_PASS  = 1; //macµØÖ·¼ì²é	
+#else
 				if(!memcmp(&rxBuff_WIFI_temp[5], &MAC_ID[1], 5))frameMacCheck_PASS  = 1; //macµØÖ·¼ì²é
-				
+#endif
 				if(rxBuff_WIFI_temp[3] == FRAME_MtoSCMD_cmdCfg_swTim){ //²»ÓÃ½øÐÐÐ£ÑéÂë¼ì²éµÄÖ¸Áî
 				
 					frameCodeCheck_PASS = 1;	
-					
 				}
-				if(rxBuff_WIFI_temp[3] == FRAME_MtoSCMD_cmdConfigSearch){ //²»ÓÃ½øÐÐmacµØÖ·¼ì²éµÄÖ¸Áî
+				if((rxBuff_WIFI_temp[3] == FRAME_MtoSCMD_cmdConfigSearch) || (rxBuff_WIFI_temp[3] == FRAME_MtoSCMD_cmdQuery)){ //²»ÓÃ½øÐÐmacµØÖ·¼ì²éµÄÖ¸Áî
 				
 					frameMacCheck_PASS = 1;	
-					
-				}
-				
+				}			
+#if(SMARTSWITCH_IF == 1)
+				frameCodeCheck_PASS = 1; //ÀÏ°æAPP²»ÒªÐ£Ñé
+#endif			
 				if(frameMacCheck_PASS & frameMacCheck_PASS){ //Ö¸ÁîÑéÖ¤
 					
 					Parsing_EN = 1;	
@@ -435,7 +472,7 @@ void thread_dataTrans(void){
 				Parsing_EN = 0;	
 				
 			}break;
-		}
+		}	
 	}
 	
 	/*********************************Êý¾Ý°ü¿ªÊ¼½âÎöÏìÓ¦**********************************/	
@@ -479,31 +516,36 @@ void thread_dataTrans(void){
 								default:break;
 							}
 							
-							repeatTX_buff[11]	= rxBuff_WIFI_temp[11];		//¿ª¹Ø×´Ì¬¸üÐÂÌî³ä
+							repeatTX_buff[11] = rxBuff_WIFI_temp[11];		//¿ª¹Ø×´Ì¬¸üÐÂÌî³ä
 							
 						}break;
 
 						/*ÅäÖÃËÑË÷Ö¸Áî*/
 						case FRAME_MtoSCMD_cmdConfigSearch:{	
 							
-							u8 deviceLock_IF = 0;
+							u8 xdata serverIP_temp[6] = {0};
+							u8 xdata deviceLock_IF = 0;
 											
 							EEPROM_read_n(EEPROM_ADDR_deviceLockFLAG, &deviceLock_IF, 1);
+							EEPROM_read_n(EEPROM_ADDR_serverIP_record, serverIP_temp, 6);
 							
 							//ÉÏËø¼ì²â
-							if(!deviceLock_IF){	
-								
-								u8 xdata serverIP_temp[4] = {0};
+							if(!deviceLock_IF){		
+#if(SMARTSWITCH_IF != 1)											
+								u8 code port_constTemp[2] = {0, 80};
 								memcpy(&serverIP_temp[0], &rxBuff_WIFI_temp[6], 4);
 							
 								//·þÎñÆ÷µØÖ·Í¬²½
-								if(WIFI_serverUDP_CHG(serverIP_temp)){
+								if(WIFI_serverUDP_CHG(serverIP_temp, port_constTemp)){
 									
 
 								}else{
 								
 								}
-
+#else
+								
+								memcpy(&repeatTX_buff[14], serverIP_temp, 6); //ipÐÅÏ¢
+#endif
 								//Ê±¼äÐÅÏ¢Í¬²½
 								timeZone_Hour 	= rxBuff_WIFI_temp[12];		//Ê±Çø¸üÐÂ
 								timeZone_Minute	= rxBuff_WIFI_temp[13];
@@ -516,21 +558,45 @@ void thread_dataTrans(void){
 							}
 							
 						}break;
+
+#if(SMARTSWITCH_IF == 1)	
+						/*Ô¶¶Ë·þÎñÆ÷¸ü¸ÄÖ¸Áî*/
+						case FRAME_MtoSCMD_cmdRemoteServerChg:{
+							
+								u8 xdata serverIP_temp[6] = {0};
+							
+								memcpy(&repeatTX_buff[12], &rxBuff_WIFI_temp[12], 6);
+								memcpy(&serverIP_temp[0], &rxBuff_WIFI_temp[12], 6);
+							
+								dtasTX_loadBasic_AUTO( repeatTX_buff,				/*·¢ËÍÇ°×îºó×°ÔØ*///·¢ËÍ°ü»ù±¾ÐÅÏ¢Ìî³ä
+													   FRAME_TYPE_StoM_RCVsuccess,
+													   cmdParing_Temp,
+													   specialCmd_FLAG
+													 );
+								uartObjWIFI_Send_String(repeatTX_buff, repeatTX_Len);//Êý¾Ý½ÓÊÕ»Ø¸´ÏìÓ¦	
+								delayMs(10);
+								uartObjWIFI_Send_String(repeatTX_buff, repeatTX_Len);//Êý¾Ý½ÓÊÕ»Ø¸´ÏìÓ¦	
+							
+								//·þÎñÆ÷µØÖ·Í¬²½
+								WIFI_serverUDP_CHG(&serverIP_temp[2], &serverIP_temp[0]); //ÏÂ±ê12¡¢13¶Ë¿Ú£¬ÏÂ±ê14¿ªÊ¼ÎªIP
+								respond_FLAG = 0;
+								
+						}break;
+#endif
 						
 						/*²éÑ¯µÇÂ¼Ö¸Áî*/
 						case FRAME_MtoSCMD_cmdQuery:{	
 							
-							u8 deviceLock_IF = 0;
+							u8 xdata deviceLock_IF 		= 0;
+							u8 xdata serverIP_temp[6] 	= {0};
 							
 							EEPROM_read_n(EEPROM_ADDR_deviceLockFLAG, &deviceLock_IF, 1);
+							EEPROM_read_n(EEPROM_ADDR_serverIP_record, serverIP_temp, 6);
 
-							if(deviceLock_IF){
-								
-								
-							}else{
+							repeatTX_buff[11] = status_Relay;
+							repeatTX_buff[12] = deviceLock_IF;
 							
-
-							}
+							memcpy(&repeatTX_buff[14], serverIP_temp, 6);
 							
 						}break;
 						
@@ -547,6 +613,7 @@ void thread_dataTrans(void){
 							datsTime_temp.time_Hour 	= rxBuff_WIFI_temp[29];
 							elec_Consum_moment			= datsTime_temp.time_Hour;
 							datsTime_temp.time_Minute 	= rxBuff_WIFI_temp[30];
+							datsTime_temp.time_Second	= 1;
 							datsTime_temp.time_Week 	= rxBuff_WIFI_temp[31];
 							
 							timeSet(datsTime_temp);
@@ -554,6 +621,7 @@ void thread_dataTrans(void){
 							//¶¨Ê±Êý¾Ý´¦Àí¼°¸üÐÂ,·ÖÀà´¦Àí
 							switch(rxBuff_WIFI_temp[13]){
 							
+								case 0: 
 								case cmdConfigTim_normalSwConfig:{	/*ÆÕÍ¨¶¨Ê±*/
 									
 									for(loop = 0; loop < 4; loop ++){
@@ -561,7 +629,7 @@ void thread_dataTrans(void){
 										if(rxBuff_WIFI_temp[14 + loop * 3] == 0x80){	/*Ò»´ÎÐÔ¶¨Ê±ÅÐ¶Ï*///ÖÜÕ¼Î»Îª¿Õ£¬¶ø¶¨Ê±Æ÷±»´ò¿ª£¬ËµÃ÷ÊÇÒ»´ÎÐÔ
 										
 											swTim_onShoot_FLAG 				|= (1 << loop);	//Ò»´ÎÐÔ¶¨Ê±±êÖ¾¿ªÆô
-											rxBuff_WIFI_temp[14 + loop * 3] |= (1 << (rxBuff_WIFI_temp[31] - 1)); //Ç¿ÐÐ½øÐÐµ±Ç°ÖÜÕ¼Î»£¬µ±´ÎÖ´ÐÐÍê±ÏºóÇå³ý
+											rxBuff_WIFI_temp[14 + loop * 3] |= (1 << (rxBuff_WIFI_temp[31] - 1)); //Ç¿ÐÐ½øÐÐµ±Ç°ÖÜÕ¼Î»£¬µ±´ÎÖ´ÐÐÍê±ÏºóÇå³ý <rxBuff_WIFI_temp[31]Îªµ±Ç°ÊÚÊ± ÖÜ>
 										}
 									}
 									coverEEPROM_write_n(EEPROM_ADDR_swTimeTab, &rxBuff_WIFI_temp[14], 12);	//¶¨Ê±±í
@@ -614,8 +682,7 @@ void thread_dataTrans(void){
 							}
 							
 							//Êý¾ÝÏìÓ¦¼°»Ø¸´
-							repeatTX_buff[12]	= rxBuff_WIFI_temp[12];
-							repeatTX_buff[13]	= rxBuff_WIFI_temp[13];
+							memcpy(&repeatTX_buff[12], &rxBuff_WIFI_temp[12], 14);
 
 						}break;
 						
@@ -683,7 +750,7 @@ void thread_dataTrans(void){
 										}
 									}
 									
-									specialCmd_FLAG = 1;
+//									specialCmd_FLAG = 1;
 									
 								}break;
 								
@@ -711,24 +778,27 @@ void thread_dataTrans(void){
 						case FRAME_MtoSCMD_cmdConfigAP:{	
 						
 							//´ËÖ¸Áî²»³£ÓÃ£¬ ±£Áô
+							
 						}break;
 						
 						/*ÌáÊ¾ÒôÊ¹ÄÜÖ¸Áî*/
 						case FRAME_MtoSCMD_cmdBeepsON:{		
 						
+							beeps_EN = 1;
 							
 						}break;
 						
 						/*ÌáÊ¾ÒôÊ§ÄÜÖ¸Áî*/
 						case FRAME_MtoSCMD_cmdBeepsOFF:{	
 						
+							beeps_EN = 0;
 							
 						}break;
 						
 						/*»Ö¸´³ö³§±¾µØÊÇ·ñÖ§³Ö²éÑ¯*/
 						case FRAME_MtoSCMD_cmdftRecoverRQ:{	
 						
-
+							
 						}
 						
 						/*»Ö¸´³ö³§ÉèÖÃÖ¸Áî*/
@@ -786,9 +856,9 @@ void thread_dataTrans(void){
 						datsTime_temp.time_Hour 	= rxBuff_WIFI_temp[11];
 						datsTime_temp.time_Minute 	= rxBuff_WIFI_temp[12];
 						datsTime_temp.time_Second 	= rxBuff_WIFI_temp[13];						
-						
+#if(SMARTSWITCH_IF != 1)							
 						timeSet(datsTime_temp);
-						
+#endif
 					}break;
 					
 					default:break;
@@ -816,12 +886,11 @@ void thread_dataTrans(void){
 			heartBeat_Type = !heartBeat_Type;
 			
 			heartBeat_Pack[2]	= FRAME_HEARTBEAT_cmdOdd;
-			memcpy(&heartBeat_Pack[3], &MAC_ID[1], 5);
 			
 			EEPROM_read_n(EEPROM_ADDR_timeZone_H, &timeZone_Hour, 1);
 			EEPROM_read_n(EEPROM_ADDR_timeZone_M, &timeZone_Minute, 1);
-			heartBeat_Pack[8] = timeZone_Hour;
-			heartBeat_Pack[9] = timeZone_Minute;
+			heartBeat_Pack[9] 	= timeZone_Hour;
+			heartBeat_Pack[10] 	= timeZone_Minute;
 			
 //			//²âÊÔ´úÂë¶Î
 //			{
@@ -841,39 +910,65 @@ void thread_dataTrans(void){
 			u16 integer_prt = (u16)elec_Consum & 0x00FF;	//µçÁ¿ÕûÊý²¿·Ö
 			u16 decimal_prt = (u16)((elec_Consum - (float)integer_prt) * 10000.0F);	//µçÁ¿Ð¡Êý²¿·ÖÇ¿×ªÎªÕûÊýÀàÐÍ
 			
-			heartBeat_Pack[10]	= (u8)((integer_prt & 0x00FF) >> 0);	//ÕûÊý²¿·ÖÌî×°
-			heartBeat_Pack[11]	= (u8)((decimal_prt & 0xFF00) >> 8);	//Ð¡Êý²¿·ÖÌî×°
-			heartBeat_Pack[12]	= (u8)((decimal_prt & 0x00FF) >> 0);	//Ð¡Êý²¿·ÖÌî×°
+			heartBeat_Pack[11]	= (u8)((integer_prt & 0x00FF) >> 0);	//ÕûÊý²¿·ÖÌî×°
+			heartBeat_Pack[12]	= (u8)((decimal_prt & 0xFF00) >> 8);	//Ð¡Êý²¿·ÖÌî×°
+			heartBeat_Pack[13]	= (u8)((decimal_prt & 0x00FF) >> 0);	//Ð¡Êý²¿·ÖÌî×°
 			}
 			
 			{
 			u16 integer_prt = (u16)paramElec_Param.ePower & 0xFFFF;	//¹¦ÂÊÕûÊý²¿·Ö
 			u16 decimal_prt = (u16)((paramElec_Param.ePower - (float)integer_prt) * 10000.0F);	//¹¦ÂÊÐ¡Êý²¿·ÖÇ¿×ªÎªÕûÊýÀàÐÍ
 			
-			heartBeat_Pack[13]	= (u8)((integer_prt & 0xFF00) >> 8);	//ÕûÊý²¿·ÖÌî×°
-			heartBeat_Pack[14]	= (u8)((integer_prt & 0x00FF) >> 0);	//ÕûÊý²¿·ÖÌî×°
-			heartBeat_Pack[15]	= (u8)((decimal_prt & 0xFF00) >> 8);	//Ð¡Êý²¿·ÖÌî×°
-			heartBeat_Pack[16]	= (u8)((decimal_prt & 0x00FF) >> 0);	//Ð¡Êý²¿·ÖÌî×°
+			heartBeat_Pack[14]	= (u8)((integer_prt & 0xFF00) >> 8);	//ÕûÊý²¿·ÖÌî×°
+			heartBeat_Pack[15]	= (u8)((integer_prt & 0x00FF) >> 0);	//ÕûÊý²¿·ÖÌî×°
+			heartBeat_Pack[16]	= (u8)((decimal_prt & 0xFF00) >> 8);	//Ð¡Êý²¿·ÖÌî×°
+			heartBeat_Pack[17]	= (u8)((decimal_prt & 0x00FF) >> 0);	//Ð¡Êý²¿·ÖÌî×°
 			}
 			
-			heartBeat_Pack[17]	= elec_Consum_moment;	//¶ÔÓ¦Ê±¶Î±êÖ¾Ìî×°
+			heartBeat_Pack[18]	= elec_Consum_moment;	//¶ÔÓ¦Ê±¶Î±êÖ¾Ìî×°
 			
 		}else{	//Å¼ÊýÐÄÌø
 		
 			heartBeat_Type = !heartBeat_Type;
 			
 			heartBeat_Pack[2]	= FRAME_HEARTBEAT_cmdEven;
-			memcpy(&heartBeat_Pack[3], &MAC_ID[1], 5);
 			
-			heartBeat_Pack[8]	= deviceLock_flag;
-			heartBeat_Pack[9]	= ifTim_sw_running_FLAG;
-			heartBeat_Pack[10]	= status_Relay;
-			heartBeat_Pack[11]	= (ifDelay_sw_running_FLAG & 0x01) >> 0; //ÂÌÉ«Ä£Ê½
+			heartBeat_Pack[9]	= deviceLock_flag;
+			heartBeat_Pack[10]	= ifTim_sw_running_FLAG;
+			heartBeat_Pack[11]	= status_Relay;
+			heartBeat_Pack[12]	= (ifDelay_sw_running_FLAG & 0x01) >> 0; //ÂÌÉ«Ä£Ê½
 		}
 		
-		heartBeat_Pack[18]	= SWITCH_TYPE_FP;
-		heartBeat_Pack[19]	= FRAME_TAIL_HEARTBEAT;
+		heartBeat_Pack[19]	= SWITCH_TYPE_FP;
+		heartBeat_Pack[20]	= FRAME_TAIL_HEARTBEAT;
+		
+#if(SMARTSWITCH_IF != 1) //ÊÇ·ñÎªÀÏ°æAPP
+			memcpy(&heartBeat_Pack[3], &MAC_ID[1], 5);
+			memcpy(&heartBeat_Pack[8], &heartBeat_Pack[9], 12);
+#else
+			memcpy(&heartBeat_Pack[3], &MAC_ID[0], 6);
+#endif
 
 		uartObjWIFI_Send_String(heartBeat_Pack, dataHeartBeatLength_objSERVER);
 	}
+	
+	/*************************************±¾µØÍ¨Öª¿ª¹Ø×´Ì¬********************************************/
+#if(SMARTSWITCH_IF == 1)
+	if(swDataBroadcast_IF){
+		
+		swDataBroadcast_IF = 0;
+	
+		memset(repeatTX_buff, 0, sizeof(u8) * 45);
+		
+		repeatTX_buff[11] = (u8)status_Relay;
+
+		dtasTX_loadBasic_CUST( DATATRANS_objFLAG_MOBILE,
+							   repeatTX_buff,	/*·¢ËÍÇ°×îºó×°ÔØ*///·¢ËÍ°ü»ù±¾ÐÅÏ¢Ìî³ä
+							   FRAME_TYPE_StoM_RCVsuccess,
+							   FRAME_MtoSCMD_cmdControl,
+							   0
+							 );
+		uartObjWIFI_Send_String(repeatTX_buff, dataTransLength_objMOBILE);//Êý¾Ý½ÓÊÕ»Ø¸´ÏìÓ¦	
+	}
+#endif
 }

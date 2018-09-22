@@ -10,12 +10,7 @@
 
 void Delay1us(void){		//@24.00MHz
 
-	unsigned char i;
-
-	 _nop_();
-	 _nop_();
-	i = 3;
-	while (--i);
+	NOP10();
 }
 
 /****************IIC时序所需延时******************/
@@ -179,17 +174,16 @@ u8 BCDtoD(u8 num){
   return ((num & 0x0f) + ((num >> 4) * 10));
 }
 
-void timeSet(stt_Time code timeDats){
+void timeSet(stt_Time timeDats){
 
 	write_HYM8564_byte(registerADDR_HYM8564_YEAR, 	DtoBCD(timeDats.time_Year));
 	write_HYM8564_byte(registerADDR_HYM8564_MONTH, 	DtoBCD(timeDats.time_Month));
-	if(timeDats.time_Week)		/*必须加判断，否则周会被设成0*///数值为0则保持原样
-	write_HYM8564_byte(registerADDR_HYM8564_WEEK, 	DtoBCD(timeDats.time_Week));
+	/*必须加判断，否则周会被设成0*///数值为0则保持原样
+	if(timeDats.time_Week)write_HYM8564_byte(registerADDR_HYM8564_WEEK, DtoBCD(timeDats.time_Week));		
 	write_HYM8564_byte(registerADDR_HYM8564_DAY, 	DtoBCD(timeDats.time_Day));
 	write_HYM8564_byte(registerADDR_HYM8564_HOUR, 	DtoBCD(timeDats.time_Hour));
 	write_HYM8564_byte(registerADDR_HYM8564_MINUTE, DtoBCD(timeDats.time_Minute));
-	if(timeDats.time_Second)	//数值为0则保持
-	write_HYM8564_byte(registerADDR_HYM8564_SECOND, DtoBCD(timeDats.time_Second));
+	if(timeDats.time_Second)write_HYM8564_byte(registerADDR_HYM8564_SECOND, DtoBCD(timeDats.time_Second)); //数值为0则保持
 }
 
 void timeRead(stt_Time *timeDats){
@@ -208,7 +202,7 @@ void time_Logout(stt_Time code timeDats){
 	u8 xdata Log[80] 	= {0};
 	
 	sprintf(Log, 
-	"\n>>===时间戳===<<\n    20%d/%02d/%02d-W%01d\n        %02d:%02d:%02d\n", 
+	"\n>>===时间戳===<<\n    20%d/%02d/%02d-W%d\n        %02d:%02d:%02d\n", 
 			(int)timeDats.time_Year,
 			(int)timeDats.time_Month,
 			(int)timeDats.time_Day,
@@ -225,9 +219,9 @@ void HYM8564_Test(void){
 	
 	static u8 adjust_CNT = 0;
 
-	stt_Time code timeSet_Tab1 = {18, 5, 4, 3, 9, 38, 23};
+	stt_Time code timeSet_Tab1 = {18, 9, 1, 10, 17, 41, 55};
 	
-	stt_Time idata 	valTime_Local	= {0};
+	stt_Time xdata 	valTime_Local = {0};
 	
 	timeSet(timeSet_Tab1);
 	
@@ -237,7 +231,7 @@ void HYM8564_Test(void){
 		
 		time_Logout(valTime_Local);
 		
-		delayMs(1000);
+		delayMs(1500);
 		
 		if(adjust_CNT < 8)adjust_CNT ++;
 		else{

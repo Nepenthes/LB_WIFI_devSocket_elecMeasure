@@ -32,6 +32,6 @@ bit cmdPackAT_validation(datsAttr_wifiInit cmdPack, unsigned char repeatLoop);
 					 
 bit WIFI_configInit(void);
 bit WIFI_WMODE_CHG(bit ifAP);
-bit WIFI_serverUDP_CHG(unsigned char ip[4]);
+bit WIFI_serverUDP_CHG(u8 ip[4], u8 port[2]);
 
 #endif

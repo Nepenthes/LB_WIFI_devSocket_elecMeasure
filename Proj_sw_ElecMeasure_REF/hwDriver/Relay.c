@@ -12,6 +12,7 @@ extern switch_Status	swStatus_fromTim;  //定时时刻到达时开关响应动作状态
 
 //*********************定时延时业务相关变量引用区*****************/
 extern u16				delayCnt_closeLoop;
+extern bit 				greenModeStart_IF;
 
 /**********************本地文件变量定义区*****************************/
 status_ifSave			relayStatus_ifSave		= statusSave_disable;	//开关记忆使能变量
@@ -82,8 +83,6 @@ void relay_Act(rly_methodType act_Method){
 	dev_ledTips = ledMode_relayOpenIF; //led提示灯
 	dev_beeps = beepsMode_Touch;
 	
-	if(status_Relay == actRelay_ON)delayCnt_closeLoop = 0; //开关一旦打开立刻更新绿色模式时间计数值
-	
 	pinRELAY = status_Relay;
 	
 	if(relayStatus_ifSave == statusSave_enable){	//开关状态记忆
@@ -132,5 +131,14 @@ void thread_Relay(void){
 		}break;
 		
 		default:break;
+	}
+	
+	if(!greenModeStart_IF){ //绿色模式计时是否已经开启
+
+		if(status_Relay == actRelay_ON){ //开关一旦打开立刻更新绿色模式时间计数值
+		
+			greenModeStart_IF = 1;
+			delayCnt_closeLoop = 0;
+		} 
 	}
 }

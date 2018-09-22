@@ -75,7 +75,12 @@ void Factory_recover(void){
 void birthDay_Judge(void){
 	
 	u8 		 eeprom_buffer[20]	= {0};
-	u8 code	 IP_default[4]		= {47,52,5,108};		//默认香港服务器
+#if(SMARTSWITCH_IF != 1)
+	u8 code	 IP_default[6]		= {47,52,5,108,0,80};		//默认香港服务器,端口80
+#else
+//	u8 code	 IP_default[4]		= {47,52,5,108};			//默认香港服务器
+	u8 code	 IP_default[6]		= {112,124,61,191,0x1f,0x40};	//默认中国服务器,端口8000
+#endif
 	
 	delayMs(10);
 	
@@ -101,8 +106,13 @@ void birthDay_Judge(void){
 		EEPROM_write_n(EEPROM_ADDR_swTimeTab, &eeprom_buffer[0], 13);
 		delayMs(10);
 		
-		memcpy(eeprom_buffer, IP_default, 4);		//服务器IP模板设置默认
-		EEPROM_write_n(EEPROM_ADDR_serverIP_record, &eeprom_buffer[0], 4);
+		eeprom_buffer[0] = 0;			//绿色模式定时清零
+		EEPROM_write_n(EEPROM_ADDR_swDelayFLAG, &eeprom_buffer[0], 1);
+		EEPROM_write_n(EEPROM_ADDR_periodCloseLoop, &eeprom_buffer[0], 1);
+		delayMs(10);
+		
+		memcpy(eeprom_buffer, IP_default, 6);		//服务器IP模板设置默认
+		EEPROM_write_n(EEPROM_ADDR_serverIP_record, &eeprom_buffer[0], 6);
 		delayMs(10);
 		
 	}else{

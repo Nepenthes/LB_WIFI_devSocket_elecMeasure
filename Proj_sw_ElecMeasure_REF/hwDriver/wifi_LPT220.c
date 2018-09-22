@@ -182,7 +182,8 @@ bit cmdPackAT_validation(datsAttr_wifiInit cmdPack, unsigned char repeatLoop){
 /*********************WIFI模块网络参数配置初始化******************/
 bit WIFI_configInit(void){
 	
-	u8 xdata serverIP_temp[4] 	= {0};
+	u8 xdata ipRecord_temp[6] 	= {0};
+	u16 xdata port_Temp 		= 0;
 	u8 xdata ATCMD_temp[40]		= {0};
 	
 	u16 data tOut_cnt	= 5000;
@@ -238,11 +239,13 @@ bit WIFI_configInit(void){
 		
 	if(!cmdPackAT_validation(wifiCMD_dats[4], 5))return 0;	//socket_A配置
 	
-	EEPROM_read_n(EEPROM_ADDR_serverIP_record, &serverIP_temp[0], 4);
-	sprintf(ATCMD_temp, "AT+SOCKB=UDP,80,%d.%d.%d.%d\r\n", 	(int)serverIP_temp[0], 
-															(int)serverIP_temp[1], 
-															(int)serverIP_temp[2], 
-															(int)serverIP_temp[3]);
+	EEPROM_read_n(EEPROM_ADDR_serverIP_record, &ipRecord_temp[0], 6);
+	port_Temp = (((u16)ipRecord_temp[4] << 8) | ((u16)ipRecord_temp[5] << 0));
+	sprintf(ATCMD_temp, "AT+SOCKB=UDP,%d,%d.%d.%d.%d\r\n", 	(int)port_Temp,
+															(int)ipRecord_temp[0], 
+															(int)ipRecord_temp[1], 
+															(int)ipRecord_temp[2], 
+															(int)ipRecord_temp[3]);
 	delayMs(10);
 														   
 	if(!cmdAT_validation(ATCMD_temp,						//socket_B配置
@@ -267,18 +270,37 @@ bit WIFI_configInit(void){
 }
 
 /*********************UDP_IP更变******************/
-	bit WIFI_serverUDP_CHG(unsigned char ip[4]){
+	bit WIFI_serverUDP_CHG(u8 ip[4], u8 port[2]){
 
-	unsigned char idata ipNem_temp[40] 		= {0},
-				  idata ipRecord_temp[4]	= {0};
+	u8 	xdata ipNem_temp[40] 	= {0},
+		xdata ipRecord_temp[6]	= {0};		  
+	u16 xdata port_Temp 		= 0;
+	   
+	bit idata ipChange_IF 		= 0;
+	bit idata portChange_IF		= 0;
+	bit idata server_changeIF 	= 0;
 				  
-	EEPROM_read_n(EEPROM_ADDR_serverIP_record, ipRecord_temp, 4);
-	if(!memcmp(ipRecord_temp, ip, 4))return 1;
+	EEPROM_read_n(EEPROM_ADDR_serverIP_record, ipRecord_temp, 6);
+	   
+	((ip[0] | ip[1] | ip[2] | ip[3]) && memcmp(&ipRecord_temp[0], ip, 4))?(ipChange_IF = 1):(ipChange_IF = 0);
+	((port[0] | port[1]) && memcmp(&ipRecord_temp[4], port, 2))?(portChange_IF = 1):(portChange_IF = 0);
+	   
+	if(ipChange_IF | portChange_IF){
+		
+		server_changeIF = 1;
+	
+		if(ipChange_IF)memcpy(&ipRecord_temp[0], ip, 4);
+		if(portChange_IF)memcpy(&ipRecord_temp[4], port, 2);
+		
+		port_Temp = (((u16)ipRecord_temp[4] << 8) | ((u16)ipRecord_temp[5] << 0));
+	}
+	   
+	if(!server_changeIF)return 1;
 	else{
 		
-		coverEEPROM_write_n(EEPROM_ADDR_serverIP_record, ip, 4);
+		coverEEPROM_write_n(EEPROM_ADDR_serverIP_record, ipRecord_temp, 6);
 	
-		sprintf(ipNem_temp, "AT+SOCKB=UDP,80,%d.%d.%d.%d\r\n", (int)ip[0], (int)ip[1], (int)ip[2], (int)ip[3]);
+		sprintf(ipNem_temp, "AT+SOCKB=UDP,%d,%d.%d.%d.%d\r\n", (int)port_Temp, (int)ipRecord_temp[0], (int)ipRecord_temp[1], (int)ipRecord_temp[2], (int)ipRecord_temp[3]);
 		
 		if(!WIFI_ENTM_OUT(10))return 0;
 		if(!cmdPackAT_validation(wifiCMD_dats[0], 5))return 0;

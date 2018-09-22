@@ -25,6 +25,7 @@ u8				delayPeriod_onoff				= 0;	//延时动作周期
 bit				delayUp_act						= 0;	//延时动作具体动作
 u16				delayCnt_closeLoop				= 0;	//绿色模式计时计数
 u8				delayPeriod_closeLoop			= 0;	//绿色模式动作周期
+bit 			greenModeStart_IF 				= 0;	//绿色模式开始计时标志
 
 /*-----------------------------------------------------------------------------------------------*/
 void datsTiming_read_eeprom(timing_Dats timDats_tab[4]){

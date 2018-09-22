@@ -28,13 +28,13 @@
 
 typedef struct{
 
-	unsigned char time_Year;
-	unsigned char time_Month;
-	unsigned char time_Week;
-	unsigned char time_Day;
-	unsigned char time_Hour;
-	unsigned char time_Minute;
-	unsigned char time_Second;
+	u8 time_Year;
+	u8 time_Month;
+	u8 time_Week;
+	u8 time_Day;
+	u8 time_Hour;
+	u8 time_Minute;
+	u8 time_Second;
 }stt_Time;
 
 void iicHYM8564_pinInit(void);

@@ -110,7 +110,9 @@ int main(void){
 		elecParamLog_thread();
 #else
 		thread_dataTrans();
+#if(SMARTSWITCH_IF != 1)
 		thread_LocalStaus_Release();
+#endif
 #endif
 		UsrKEYScan(fun_kShort, fun_kLongA, fun_kLongB);
 	}

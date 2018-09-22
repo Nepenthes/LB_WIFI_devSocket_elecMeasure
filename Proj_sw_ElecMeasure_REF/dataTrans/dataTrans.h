@@ -2,6 +2,8 @@
 #define __DATATRANS_H_
 
 #include "STC15Fxxxx.H"
+
+#include "dataManage.h"
 #include "USART.h"
 
 #define BAUD_WIFI	 115200UL   //串口波特率->WIFI模块通讯
@@ -15,7 +17,11 @@
 
 #define dataTransLength_objMOBILE			33
 #define dataTransLength_objSERVER			45
+#if(SMARTSWITCH_IF != 1)
 #define dataHeartBeatLength_objSERVER		20
+#else
+#define dataHeartBeatLength_objSERVER		21
+#endif
 
 #define FRAME_TYPE_MtoS_CMD					0xA0	/*数据类型*///手机至开关
 #define FRAME_TYPE_StoM_RCVsuccess			0x0A	/*数据类型*///开关至手机
@@ -41,6 +47,8 @@
 #define FRAME_MtoSCMD_cmdRecoverFactory		0x1F	/*命令*///恢复出厂
 #define FRAME_MtoSCMD_cmdCfg_swTim			0x14	/*命令*///普通开关定时
 
+#define FRAME_MtoSCMD_cmdRemoteServerChg	0x29	/*命令*///更改服务器 --特殊指令 插座专用，切换服务器
+
 #define	cmdConfigTim_normalSwConfig			0xA0	/*数据1*///普通开关定时辨识-数据2
 #define cmdConfigTim_onoffDelaySwConfig		0xA1	/*数据1*///延时开关辨识-数据2
 #define cmdConfigTim_closeLoopSwConfig		0xA2	/*数据1*///循环关闭辨识-数据2
@@ -61,6 +69,7 @@ typedef enum{
 
 extern uartTout_datsRcv xdata datsRcv_ZIGB;
 extern bit 				uartRX_toutFLG;
+extern bit 				swDataBroadcast_IF;
 
 void uartObjWIFI_Init(void);
 void rxBuff_WIFI_Clr(void);

@@ -40,6 +40,7 @@ extern enum_ledTips dev_ledTips;
 extern enum_beeps   dev_beeps;
 extern bit tipsBeep_INTFLG;
 extern bit tipsSeg_INTFLG;
+extern bit beeps_EN;
 
 void segTips_Init(void);
 void segTips_InitCmp(void);

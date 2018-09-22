@@ -3,6 +3,7 @@
 
 #include "wifi_LPT220.h"
 #include "relay.h"
+#include "dataTrans.h"
 
 #include "soft_uart.h"
 #include "delay.h"
@@ -101,6 +102,7 @@ void fun_kLongB(void){
 void fun_kShort(void){
 
 	relay_Act(relay_flip);
+	swDataBroadcast_IF = 1;
 }
 
 

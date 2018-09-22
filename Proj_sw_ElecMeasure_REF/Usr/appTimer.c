@@ -37,6 +37,7 @@ extern u8				delayPeriod_onoff;
 extern bit				delayUp_act;
 extern u16				delayCnt_closeLoop;
 extern u8				delayPeriod_closeLoop;
+extern bit 				greenModeStart_IF;
 
 //***************用户按键线程变量引用区*****************/
 extern bit		 		usrKeyCount_EN;
@@ -101,7 +102,7 @@ void timer0_Rountine (void) interrupt TIMER0_VECTOR{
 				if(tips_Count < tips_Period){
 				
 					tips_Count ++;
-					PIN_BEEP = !PIN_BEEP;
+					if(beeps_EN)PIN_BEEP = !PIN_BEEP;
 					
 				}
 				else
@@ -269,6 +270,7 @@ void timer0_Rountine (void) interrupt TIMER0_VECTOR{
 			else{
 				
 				delayCnt_closeLoop = 0;
+				greenModeStart_IF = 0;
 			
 				swStatus_fromTim = swStatus_off;
 			}
@@ -298,27 +300,29 @@ void timer0_Rountine (void) interrupt TIMER0_VECTOR{
 		if(fpDetectCount_stdBy < fpDetectPeriod_stdBy)fpDetectCount_stdBy ++;
 		else{
 			
-			static xdata float pinFP_powerStdby_local = 0.0F;
-			
 			fpDetectCount_stdBy = 0;
 			
-			pinFP_powerStdby = pinFP_powerCNT / 1.0F;
+			pinFP_powerStdby = pinFP_stdby_powerCNT / 1.0F;
+			pinFP_stdby_powerCNT = 0;
 			if(status_Relay == actRelay_ON){
-			
-				if(pinFP_powerStdby > 5.0F && pinFP_powerStdby_local <= 5.0F){ //升序
-					
+				
+				if((pinFP_powerStdby - pinFP_power) > 10.0F){ //升差
+				
 					dev_segTips = segMode_elecDetectStandby;
 					tipsSeg_INTFLG = 1;
-					
-				}else
-				if(pinFP_powerStdby_local >= 5.0F && pinFP_powerStdby < 5.0F){ //降序
+				}
+				else
+				if((pinFP_power - pinFP_powerStdby) > 10.0F){ //落差
 				
 					dev_segTips = segMode_null;
 					tipsSeg_INTFLG = 1;
+				}else
+				if((pinFP_powerStdby - pinFP_power) < 3.0F && (pinFP_powerStdby - pinFP_power) > -3.0F){ //无差
+				
+					dev_segTips = segMode_elecDetect;
+					tipsSeg_INTFLG = 1;
 				}
 			}
-			
-			pinFP_powerStdby_local = pinFP_powerStdby;
 		}
 	}
 	
@@ -349,14 +353,14 @@ void timer0_Rountine (void) interrupt TIMER0_VECTOR{
 		pinFP_volXcur	 = pinFP_volXcurCNT / 5.0F;	//值确认
 		pinFP_power		 = pinFP_powerCNT / 5.0F;
 		
-		if(pinFP_power > 5.0){
-		
-			if(status_Relay == actRelay_ON){
-			
-				dev_segTips = segMode_elecDetect;
-				tipsSeg_INTFLG = 1;
-			}
-		}
+//		if(pinFP_power > 5.0){
+//		
+//			if(status_Relay == actRelay_ON){
+//			
+//				dev_segTips = segMode_elecDetect;
+//				tipsSeg_INTFLG = 1;
+//			}
+//		}
 		
 		if(pin_funFP_Select){	//电压
 		

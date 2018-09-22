@@ -29,6 +29,7 @@ extern float	  xdata elec_Consum;
 /*计数值*/
 extern float xdata pinFP_volXcurCNT;
 extern float xdata pinFP_powerCNT;
+extern float xdata pinFP_stdby_powerCNT;
 
 /*定值*/
 extern float xdata pinFP_volXcur;

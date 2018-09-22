@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   EEPROM                                                                09/07/2018 15:49:48 PAGE 1   
+C51 COMPILER V9.54   EEPROM                                                                09/20/2018 11:05:44 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE EEPROM
@@ -62,7 +62,7 @@ line level    source
   51   2                      DataAddress++;
   52   2              }while(--number);
   53   1      
-C51 COMPILER V9.54   EEPROM                                                                09/07/2018 15:49:48 PAGE 2   
+C51 COMPILER V9.54   EEPROM                                                                09/20/2018 11:05:44 PAGE 2   
 
   54   1              DisableEEPROM();
   55   1              EA = 1;         //重新允许中断
@@ -126,7 +126,7 @@ line level    source
  113          //========================================================================
  114          // 函数: void coverEEPROM_write_n(u16 EE_address,u8 *DataAddress,u16 number)
  115          // 描述: 把缓冲的n个字节写入指定首地址的EEPROM-----数据覆盖形式写入！！！！！！！！！
-C51 COMPILER V9.54   EEPROM                                                                09/07/2018 15:49:48 PAGE 3   
+C51 COMPILER V9.54   EEPROM                                                                09/20/2018 11:05:44 PAGE 3   
 
  116          // 参数: EE_address:  写入EEPROM的首地址.
  117          //       DataAddress: 写入源数据的缓冲的首地址.

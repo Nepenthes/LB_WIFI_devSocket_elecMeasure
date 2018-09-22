@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   WIFI_LPT220                                                           09/07/2018 15:49:48 PAGE 1   
+C51 COMPILER V9.54   WIFI_LPT220                                                           09/20/2018 11:05:43 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE WIFI_LPT220
@@ -62,7 +62,7 @@ line level    source
   49                  {{"AT+NETP=UDP,SERVER,8866,255.255.255.255\r\n"},{"+ok\r\n", "ok"},                                             {5,2},          200},   //²âÊÔ×¨ÓÃlog_sock
              -etA
   50                  {{"AT+SOCKB=UDPS,8866,255.255.255.255\r\n"},    {"+ok\r\n", "ok"},                                              {5,2},          200},   //²âÊÔ×¨ÓÃlog_socketB
-C51 COMPILER V9.54   WIFI_LPT220                                                           09/07/2018 15:49:48 PAGE 2   
+C51 COMPILER V9.54   WIFI_LPT220                                                           09/20/2018 11:05:43 PAGE 2   
 
   51          };
   52          
@@ -126,7 +126,7 @@ line level    source
  110          /**********************************ÍËÍ¸´«*******************************/
  111          bit WIFI_ENTM_OUT(unsigned char repeatLoop){
  112   1              
-C51 COMPILER V9.54   WIFI_LPT220                                                           09/07/2018 15:49:48 PAGE 3   
+C51 COMPILER V9.54   WIFI_LPT220                                                           09/20/2018 11:05:43 PAGE 3   
 
  113   1              u8 loopOut = repeatLoop;
  114   1              
@@ -190,7 +190,7 @@ line level    source
  171          
  172          /*********************µ¥ÌõATÖ¸ÁîÏÂ´ï¼°ÑéÖ¤ÏìÓ¦¡ª¡ªÐÎ²Î½á¹¹Ìå´ò°ü******************/
  173          bit cmdPackAT_validation(datsAttr_wifiInit cmdPack, unsigned char repeatLoop){
-C51 COMPILER V9.54   WIFI_LPT220                                                           09/07/2018 15:49:48 PAGE 4   
+C51 COMPILER V9.54   WIFI_LPT220                                                           09/20/2018 11:05:43 PAGE 4   
 
  174   1      
  175   1              return cmdAT_validation(cmdPack.wifiInit_reqCMD,
@@ -203,29 +203,30 @@ line level    source
  182          /*********************WIFIÄ£¿éÍøÂç²ÎÊýÅäÖÃ³õÊ¼»¯******************/
  183          bit WIFI_configInit(void){
  184   1              
- 185   1              u8 xdata serverIP_temp[4]       = {0};
- 186   1              u8 xdata ATCMD_temp[40]         = {0};
- 187   1              
- 188   1              u16 data tOut_cnt       = 5000;
- 189   1              
- 190   1              WIFI_funcPIN_nRst       = WIFI_pinEN;   //Ó²¼þ¸´Î»Ò»´Î
- 191   1              delayMs(300);
- 192   1              WIFI_funcPIN_nRst       = WIFI_pinDISEN;
- 193   1              delayMs(3000);
- 194   1      //      WIFI_funcPIN_nReload = WIFI_pinEN;
- 195   1      //      delayMs(1000);
- 196   1      //      WIFI_funcPIN_nReload = WIFI_pinDISEN;
- 197   1              
+ 185   1              u8 xdata ipRecord_temp[6]       = {0};
+ 186   1              u16 xdata port_Temp             = 0;
+ 187   1              u8 xdata ATCMD_temp[40]         = {0};
+ 188   1              
+ 189   1              u16 data tOut_cnt       = 5000;
+ 190   1              
+ 191   1              WIFI_funcPIN_nRst       = WIFI_pinEN;   //Ó²¼þ¸´Î»Ò»´Î
+ 192   1              delayMs(300);
+ 193   1              WIFI_funcPIN_nRst       = WIFI_pinDISEN;
+ 194   1              delayMs(3000);
+ 195   1      //      WIFI_funcPIN_nReload = WIFI_pinEN;
+ 196   1      //      delayMs(1000);
+ 197   1      //      WIFI_funcPIN_nReload = WIFI_pinDISEN;
  198   1              
- 199   1              while(WIFI_tipsPIN_nReady && (tOut_cnt --))delayMs(1);
- 200   1              if(!tOut_cnt)return 0;
- 201   1      
- 202   1              if(!WIFI_ENTM_OUT(15))return 0;                                                         //ÍËÍ¸´«
- 203   1              
- 204   1              if(!cmdPackAT_validation(wifiCMD_dats[0], 5))return 0;          //Ïû»Ø´«
- 205   1              delayMs(10);
- 206   1              
- 207   1      #if(TEST_LOG == 1)
+ 199   1              
+ 200   1              while(WIFI_tipsPIN_nReady && (tOut_cnt --))delayMs(1);
+ 201   1              if(!tOut_cnt)return 0;
+ 202   1      
+ 203   1              if(!WIFI_ENTM_OUT(15))return 0;                                                         //ÍËÍ¸´«
+ 204   1              
+ 205   1              if(!cmdPackAT_validation(wifiCMD_dats[0], 5))return 0;          //Ïû»Ø´«
+ 206   1              delayMs(10);
+ 207   1              
+ 208   1      #if(TEST_LOG == 1)
                       
                       if(!cmdPackAT_validation(wifiCMD_dats[1], 5))return 0;
                       
@@ -253,87 +254,110 @@ line level    source
                       if(!cmdPackAT_validation(wifiCMD_dats[6], 5))return 0;  //socketB_logÅäÖÃ
                       delayMs(10);
                       
+C51 COMPILER V9.54   WIFI_LPT220                                                           09/20/2018 11:05:43 PAGE 5   
+
               #else
-C51 COMPILER V9.54   WIFI_LPT220                                                           09/07/2018 15:49:48 PAGE 5   
-
- 236   1                      
- 237   1              if(!cmdPackAT_validation(wifiCMD_dats[2], 5))return 0;
- 238   1                      
- 239   1              if(!cmdPackAT_validation(wifiCMD_dats[4], 5))return 0;  //socket_AÅäÖÃ
- 240   1              
- 241   1              EEPROM_read_n(EEPROM_ADDR_serverIP_record, &serverIP_temp[0], 4);
- 242   1              sprintf(ATCMD_temp, "AT+SOCKB=UDP,80,%d.%d.%d.%d\r\n",  (int)serverIP_temp[0], 
- 243   1                                                                                                                              (int)serverIP_temp[1], 
- 244   1                                                                                                                              (int)serverIP_temp[2], 
- 245   1                                                                                                                              (int)serverIP_temp[3]);
- 246   1              delayMs(10);
- 247   1                                                                                                                         
- 248   1              if(!cmdAT_validation(ATCMD_temp,                                                //socket_BÅäÖÃ
- 249   1                                                       wifiCMD_dats[4].wifiInit_REPLY,
- 250   1                                                       wifiCMD_dats[4].REPLY_DATLENTAB,
- 251   1                                                       wifiCMD_dats[4].timeTab_waitAnsr,
- 252   1                                                       5))return 0; 
- 253   1              delayMs(10);
- 254   1              
- 255   1      #endif
- 256   1      
- 257   1      //      if(!cmdPackAT_validation(wifiCMD_dats[3], 5))return 0;          //wifiÖØÆô
- 258   1              
- 259   1              uartObjWIFI_Send_String(wifiCMD_dats[3].wifiInit_reqCMD, strlen(wifiCMD_dats[3].wifiInit_reqCMD));      //ÖØÆô
+ 237   1                      
+ 238   1              if(!cmdPackAT_validation(wifiCMD_dats[2], 5))return 0;
+ 239   1                      
+ 240   1              if(!cmdPackAT_validation(wifiCMD_dats[4], 5))return 0;  //socket_AÅäÖÃ
+ 241   1              
+ 242   1              EEPROM_read_n(EEPROM_ADDR_serverIP_record, &ipRecord_temp[0], 6);
+ 243   1              port_Temp = (((u16)ipRecord_temp[4] << 8) | ((u16)ipRecord_temp[5] << 0));
+ 244   1              sprintf(ATCMD_temp, "AT+SOCKB=UDP,%d,%d.%d.%d.%d\r\n",  (int)port_Temp,
+ 245   1                                                                                                                              (int)ipRecord_temp[0], 
+ 246   1                                                                                                                              (int)ipRecord_temp[1], 
+ 247   1                                                                                                                              (int)ipRecord_temp[2], 
+ 248   1                                                                                                                              (int)ipRecord_temp[3]);
+ 249   1              delayMs(10);
+ 250   1                                                                                                                         
+ 251   1              if(!cmdAT_validation(ATCMD_temp,                                                //socket_BÅäÖÃ
+ 252   1                                                       wifiCMD_dats[4].wifiInit_REPLY,
+ 253   1                                                       wifiCMD_dats[4].REPLY_DATLENTAB,
+ 254   1                                                       wifiCMD_dats[4].timeTab_waitAnsr,
+ 255   1                                                       5))return 0; 
+ 256   1              delayMs(10);
+ 257   1              
+ 258   1      #endif
+ 259   1      
+ 260   1      //      if(!cmdPackAT_validation(wifiCMD_dats[3], 5))return 0;          //wifiÖØÆô
+ 261   1              
+ 262   1              uartObjWIFI_Send_String(wifiCMD_dats[3].wifiInit_reqCMD, strlen(wifiCMD_dats[3].wifiInit_reqCMD));      //ÖØÆô
              -½øÍ¸´«
- 260   1              delayMs(200);
- 261   1              uartObjWIFI_Send_String(wifiCMD_dats[3].wifiInit_reqCMD, strlen(wifiCMD_dats[3].wifiInit_reqCMD));      
- 262   1              
- 263   1              while(WIFI_tipsPIN_nReady && (tOut_cnt --))delayMs(1);
- 264   1              if(!tOut_cnt)return 0;
- 265   1                      
- 266   1              return 1;
- 267   1      }
- 268          
- 269          /*********************UDP_IP¸ü±ä******************/
- 270                  bit WIFI_serverUDP_CHG(unsigned char ip[4]){
- 271   1      
- 272   1              unsigned char idata ipNem_temp[40]              = {0},
- 273   1                                        idata ipRecord_temp[4]        = {0};
- 274   1                                        
- 275   1              EEPROM_read_n(EEPROM_ADDR_serverIP_record, ipRecord_temp, 4);
- 276   1              if(!memcmp(ipRecord_temp, ip, 4))return 1;
- 277   1              else{
- 278   2                      
- 279   2                      coverEEPROM_write_n(EEPROM_ADDR_serverIP_record, ip, 4);
- 280   2              
- 281   2                      sprintf(ipNem_temp, "AT+SOCKB=UDP,80,%d.%d.%d.%d\r\n", (int)ip[0], (int)ip[1], (int)ip[2], (int)ip[3]);
- 282   2                      
- 283   2                      if(!WIFI_ENTM_OUT(10))return 0;
- 284   2                      if(!cmdPackAT_validation(wifiCMD_dats[0], 5))return 0;
- 285   2                      
- 286   2                      if(!cmdAT_validation(ipNem_temp,                                                //socket_BÅäÖÃ
- 287   2                                                               wifiCMD_dats[4].wifiInit_REPLY,
- 288   2                                                               wifiCMD_dats[4].REPLY_DATLENTAB,
- 289   2                                                               wifiCMD_dats[4].timeTab_waitAnsr,
- 290   2                                                               5))return 0; 
- 291   2                      
- 292   2      //              if(!cmdPackAT_validation(wifiCMD_dats[3], 5))return 0;
- 293   2                      uartObjWIFI_Send_String(wifiCMD_dats[3].wifiInit_reqCMD, strlen(wifiCMD_dats[3].wifiInit_reqCMD));      //ÖØÆ
-             -ô½øÍ¸´«
- 294   2                      delayMs(200);
- 295   2                      uartObjWIFI_Send_String(wifiCMD_dats[3].wifiInit_reqCMD, strlen(wifiCMD_dats[3].wifiInit_reqCMD));      
-C51 COMPILER V9.54   WIFI_LPT220                                                           09/07/2018 15:49:48 PAGE 6   
+ 263   1              delayMs(200);
+ 264   1              uartObjWIFI_Send_String(wifiCMD_dats[3].wifiInit_reqCMD, strlen(wifiCMD_dats[3].wifiInit_reqCMD));      
+ 265   1              
+ 266   1              while(WIFI_tipsPIN_nReady && (tOut_cnt --))delayMs(1);
+ 267   1              if(!tOut_cnt)return 0;
+ 268   1                      
+ 269   1              return 1;
+ 270   1      }
+ 271          
+ 272          /*********************UDP_IP¸ü±ä******************/
+ 273                  bit WIFI_serverUDP_CHG(u8 ip[4], u8 port[2]){
+ 274   1      
+ 275   1              u8      xdata ipNem_temp[40]    = {0},
+ 276   1                      xdata ipRecord_temp[6]  = {0};            
+ 277   1              u16 xdata port_Temp             = 0;
+ 278   1                 
+ 279   1              bit idata ipChange_IF           = 0;
+ 280   1              bit idata portChange_IF         = 0;
+ 281   1              bit idata server_changeIF       = 0;
+ 282   1                                        
+ 283   1              EEPROM_read_n(EEPROM_ADDR_serverIP_record, ipRecord_temp, 6);
+ 284   1                 
+ 285   1              ((ip[0] | ip[1] | ip[2] | ip[3]) && memcmp(&ipRecord_temp[0], ip, 4))?(ipChange_IF = 1):(ipChange_IF = 0)
+             -;
+ 286   1              ((port[0] | port[1]) && memcmp(&ipRecord_temp[4], port, 2))?(portChange_IF = 1):(portChange_IF = 0);
+ 287   1                 
+ 288   1              if(ipChange_IF | portChange_IF){
+ 289   2                      
+ 290   2                      server_changeIF = 1;
+ 291   2              
+ 292   2                      if(ipChange_IF)memcpy(&ipRecord_temp[0], ip, 4);
+ 293   2                      if(portChange_IF)memcpy(&ipRecord_temp[4], port, 2);
+ 294   2                      
+ 295   2                      port_Temp = (((u16)ipRecord_temp[4] << 8) | ((u16)ipRecord_temp[5] << 0));
+C51 COMPILER V9.54   WIFI_LPT220                                                           09/20/2018 11:05:43 PAGE 6   
 
- 296   2                      
- 297   2                      return 1;
- 298   2              }
- 299   1      }
+ 296   2              }
+ 297   1                 
+ 298   1              if(!server_changeIF)return 1;
+ 299   1              else{
+ 300   2                      
+ 301   2                      coverEEPROM_write_n(EEPROM_ADDR_serverIP_record, ipRecord_temp, 6);
+ 302   2              
+ 303   2                      sprintf(ipNem_temp, "AT+SOCKB=UDP,%d,%d.%d.%d.%d\r\n", (int)port_Temp, (int)ipRecord_temp[0], (int)ipRec
+             -ord_temp[1], (int)ipRecord_temp[2], (int)ipRecord_temp[3]);
+ 304   2                      
+ 305   2                      if(!WIFI_ENTM_OUT(10))return 0;
+ 306   2                      if(!cmdPackAT_validation(wifiCMD_dats[0], 5))return 0;
+ 307   2                      
+ 308   2                      if(!cmdAT_validation(ipNem_temp,                                                //socket_BÅäÖÃ
+ 309   2                                                               wifiCMD_dats[4].wifiInit_REPLY,
+ 310   2                                                               wifiCMD_dats[4].REPLY_DATLENTAB,
+ 311   2                                                               wifiCMD_dats[4].timeTab_waitAnsr,
+ 312   2                                                               5))return 0; 
+ 313   2                      
+ 314   2      //              if(!cmdPackAT_validation(wifiCMD_dats[3], 5))return 0;
+ 315   2                      uartObjWIFI_Send_String(wifiCMD_dats[3].wifiInit_reqCMD, strlen(wifiCMD_dats[3].wifiInit_reqCMD));      //ÖØÆ
+             -ô½øÍ¸´«
+ 316   2                      delayMs(200);
+ 317   2                      uartObjWIFI_Send_String(wifiCMD_dats[3].wifiInit_reqCMD, strlen(wifiCMD_dats[3].wifiInit_reqCMD));      
+ 318   2                      
+ 319   2                      return 1;
+ 320   2              }
+ 321   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =   1096    ----
-   CONSTANT SIZE    =    383    ----
-   XDATA SIZE       =      2      44
+   CODE SIZE        =   1281    ----
+   CONSTANT SIZE    =    387    ----
+   XDATA SIZE       =      2      96
    PDATA SIZE       =   ----    ----
-   DATA SIZE        =   ----      38
-   IDATA SIZE       =   ----      44
-   BIT SIZE         =   ----    ----
+   DATA SIZE        =   ----      41
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      3    ----
    EDATA SIZE       =   ----    ----
    HDATA SIZE       =   ----    ----
    XDATA CONST SIZE =   ----    ----
